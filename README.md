@@ -1,3 +1,3 @@
 # tinyJVM
 
-This is a tiny jvm for running java and just for fun.
+This is a tiny jvm to run java program and just for fun.
