@@ -35,6 +35,51 @@ typedef enum AccessFlag {
     ACC_ENUM                    = 0x4000
 } AccessFlag;
 
+typedef enum AttributeTag {
+    ATT_CUSTOM,
+    ATT_ConstantValue,
+    ATT_Code,
+    ATT_StatckMapTable,
+    ATT_Exceptions,
+    ATT_InnerClass,
+    ATT_EnclosingMethod,
+    ATT_Synthetic,
+    ATT_Signature,
+    ATT_SourceFile,
+    ATT_SourceDebugExtension,
+    ATT_LineNumberTable,
+    ATT_LocalVariableTypeTable,
+    ATT_Deprecated,
+    ATT_RuntimeVisibleAnnotations,
+    ATT_RuntimeInVisibleAnnotations,
+    ATT_RuntimeVisibleParameterAnnotations,
+    ATT_RuntimeInVisibleParameterAnnotations,
+    ATT_AnnotationDefault,
+    ATT_BootstrapMethods
+} AttributeTag;
+
+typedef enum FrameTag {
+    SAME_FRAME,
+    SAME_LOCALS_1_STACK_ITEM_FRAME,
+    SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED,
+    CHOP_FRAME,
+    SAME_FRAME_EXTENDED,
+    APPEND_FRAME,
+    FULL_FRAME
+} FrameTag;
+
+typedef enum VerificationTag {
+    ITEM_Top                = 0,
+    ITEM_Integer            = 1,
+    ITEM_Float              = 2,
+    ITEN_Long               = 4,
+    ITEN_Double             = 3,
+    ITEM_Null               = 5,
+    ITEM_UninitializedThis  = 6,
+    ITEM_Object             = 7,
+    ITEM_Uninitialized      = 8
+} VerificationTag;
+
 typedef struct CONSTANT_Utf8_info {
     U2      length;
     char    *bytes;
@@ -136,24 +181,61 @@ typedef struct ConstantPoolInfo {
     } info;
 } ConstantPoolInfo;
 
+
+typedef struct ConstantValue_attribute {
+    U2      constantvalue_index;
+} ConstantValue_attribute;
+
+typedef struct Code_attribute {
+    U2                      max_stack;
+    U2                      max_locals;
+    U4                      code_length;
+    U1                      *code;
+    U2                      exception_table_length;
+    struct Exception        **exception_table;
+    U2                      attribute_count;
+    struct AttributeInfo    **attributes;
+} Code_attribute;
+
+typedef struct StatckMapTable_attribute {
+    U2                      number_of_entries;
+    struct StackMapFrame    **entries;
+} StatckMapTable_attribute;
+
+typedef struct Exceptions_attribute {
+    U2                      number_of_exceptions;
+    U2                      *exception_index_table;
+} Exceptions_attribute;
+
+typedef struct InnerClasses_attribute {
+    U2                      number_of_classes;
+    struct InnerClass       **classes;
+} InnerClasses_attribute;
+
+typedef struct AttributeInfo {
+    AttributeTag        tag;
+    union {
+        struct ConstantValue_attribute      *constantvalue;
+        struct Code_attribute               *code;
+        struct StatckMapTable_attribute     *statckmaptable;
+    } info;
+} AttributeInfo;
+
 typedef struct FieldInfo {
-    U2      access_flags;
-    U2      name_index;
-    U2      descriptor_index;
-    U2      attribute_count;
+    U2                  access_flags;
+    U2                  name_index;
+    U2                  descriptor_index;
+    U2                  attribute_count;
+    AttributeInfo       **attributes;
 } FieldInfo;
 
 typedef struct MethodInfo {
-    U2      access_flags;
-    U2      name_index;
-    U2      descriptor_index;
-    U2      attribute_count;
+    U2                  access_flags;
+    U2                  name_index;
+    U2                  descriptor_index;
+    U2                  attribute_count;
+    AttributeInfo       **attributes;
 } MethodInfo;
-
-typedef struct AttributeInfo {
-    U2      name_index;
-    U4      attribute_length;
-} AttributeInfo;
 
 typedef struct ClassFile {
     U4                  magic;
@@ -173,3 +255,30 @@ typedef struct ClassFile {
     U2                  attribute_count;
     AttributeInfo       **attributes;
 } ClassFile;
+
+typedef struct Exception {
+    U2              start_pc;
+    U2              end_pc;
+    U2              handler_pc;
+    U2              catch_pc;
+} Exception;
+
+typedef struct InnerClass {
+    U2              inner_class_info_index;
+    U2              outer_class_info_index;
+    U2              inner_name_index;
+    U2              inner_calss_access_flags;
+} InnerClass;
+
+typedef struct VerificationTypeInfo {
+    VerificationTag tag;
+    U2              info;   // cpool_index when tag is ITEM_Object,
+                            // offset when tag is ITEM_Uninitialized.
+} VerificationTypeInfo;
+
+typedef struct StackMapFrame {
+    FrameTag                frame_type;
+    U2                      offset_delta;
+    VerificationTypeInfo    **statck;
+} StackMapFrame;
+
