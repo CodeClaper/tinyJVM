@@ -1,7 +1,7 @@
 #include "c.h"
 
 typedef enum ConstantTag {
-    CONSTANT_Untagged           = 0,
+CONSTANT_Untagged           = 0,
     CONSTANT_Utf8               = 1,
     CONSTANT_Integer            = 3,
     CONSTANT_Float              = 4,
@@ -91,6 +91,10 @@ typedef struct CONSTANT_MethodHandle_info {
     U2      reference_index;
 } CONSTANT_MethodHandle_info;
 
+typedef struct CONSTANT_MethodType_info {
+    U2      descriptor_index;
+} CONSTANT_MethodType_info;
+
 typedef struct CONSTANT_Dynamic_info {
     U2      bootstrap_method_attr_index;
     U2      name_type_index;
@@ -108,3 +112,26 @@ typedef struct CONSTANT_Module_info {
 typedef struct CONSTANT_Package_info {
     U2      name_index;
 } CONSTANT_Package_info;
+
+typedef struct ConstantPool {
+    U1      tag;
+    union {
+        struct CONSTANT_Utf8_info               utf8_info;
+        struct CONSTANT_Integer_info            integer_info;
+        struct CONSTANT_Float_info              float_info;
+        struct CONSTANT_Long_info               long_info;
+        struct CONSTANT_Double_info             double_info;
+        struct CONSTANT_Class_info              class_info;
+        struct CONSTANT_String_info             string_info;
+        struct CONSTANT_Fieldref_info           fieldref_info;
+        struct CONSTANT_Methodref_info          methodref_info;
+        struct CONSTANT_InterfaceMethodref_info interfacemethodref_info;
+        struct CONSTANT_NameAndType_info        nametype_info;
+        struct CONSTANT_MethodHandle_info       methodhandle_info;
+        struct CONSTANT_MethodType_info         methodtype_info;
+        struct CONSTANT_Dynamic_info            dynamic_info;
+        struct CONSTANT_InvokeDyanmic_info      invokedynamic_info;
+        struct CONSTANT_Module_info             module_info;
+        struct CONSTANT_Package_info            package_info;
+    } info;
+} ConstantPool ;
