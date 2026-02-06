@@ -15,8 +15,9 @@ ${JAVA}: ${JAVAOBJS}
 ${JAVAP}: ${JAVAPOBJS}
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-java.o: java.h class.h
-javap.o: javap.h class.h
+java.o: 	java.h class.h c.h
+javap.o: 	javap.h class.h c.h
+class.o: 	class.h c.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
