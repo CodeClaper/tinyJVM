@@ -42,6 +42,8 @@
 *.idb
 *.pdb
 
+.cache/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
