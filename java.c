@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "java.h"
+#include "c.h"
 
 int main(int argc, char *argv[]) {
     UNUSED(argc);
