@@ -1,7 +1,7 @@
 #include "c.h"
 
 typedef enum ConstantTag {
-CONSTANT_Untagged           = 0,
+    CONSTANT_Untagged           = 0,
     CONSTANT_Utf8               = 1,
     CONSTANT_Integer            = 3,
     CONSTANT_Float              = 4,
@@ -113,7 +113,7 @@ typedef struct CONSTANT_Package_info {
     U2      name_index;
 } CONSTANT_Package_info;
 
-typedef struct ConstantPool {
+typedef struct ConstantPoolInfo {
     U1      tag;
     union {
         struct CONSTANT_Utf8_info               utf8_info;
@@ -134,4 +134,42 @@ typedef struct ConstantPool {
         struct CONSTANT_Module_info             module_info;
         struct CONSTANT_Package_info            package_info;
     } info;
-} ConstantPool ;
+} ConstantPoolInfo;
+
+typedef struct FieldInfo {
+    U2      access_flags;
+    U2      name_index;
+    U2      descriptor_index;
+    U2      attribute_count;
+} FieldInfo;
+
+typedef struct MethodInfo {
+    U2      access_flags;
+    U2      name_index;
+    U2      descriptor_index;
+    U2      attribute_count;
+} MethodInfo;
+
+typedef struct AttributeInfo {
+    U2      name_index;
+    U4      attribute_length;
+} AttributeInfo;
+
+typedef struct ClassFile {
+    U4                  magic;
+    U2                  minor_version;
+    U2                  major_version;
+    U2                  constant_pool_count;
+    ConstantPoolInfo    **constant_pool;
+    U2                  access_flags;
+    U2                  this_class;
+    U2                  super_class;
+    U2                  interfaces_count;
+    U2                  *interfaces;
+    U2                  fields_count;
+    FieldInfo           **fields;
+    U2                  method_count;
+    MethodInfo          **methods;
+    U2                  attribute_count;
+    AttributeInfo       **attributes;
+} ClassFile;
