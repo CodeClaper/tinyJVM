@@ -3,6 +3,7 @@
 #include "class.h"
 #include "mmr.h"
 #include "java.h"
+#include "util.h"
 
 /* Read count bytes into buf. */
 static int readb(FILE *fp, void *buf, U4 count) {
@@ -35,7 +36,7 @@ error:
 
 /* Read string into buffer. */
 static int reads(FILE *fp, char **s, U2 count) {
-    TRY(salloc(*s, count + 1));
+    TRY(salloc((void **)s, count + 1));
     TRY(readb(fp, *s, count));
     (*s)[count] = '\0';
     return OK;
@@ -50,10 +51,10 @@ static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
         cp = NULL;
         return OK;
     }
-    TRY(salloc(*cp, sizeof(ConstantPoolInfo *) * count));
+    TRY(salloc((void **)*cp, sizeof(ConstantPoolInfo *) * count));
     /* CP starts from 1. */
     for (int i = 1; i < count; i++) {
-        TRY(salloc(**cp, sizeof(ConstantPoolInfo)));
+        TRY(salloc((void **)cp, sizeof(ConstantPoolInfo)));
         ConstantPoolInfo *current = **cp;
         TRY(readu(fp, &current->tag, 2));
         switch (current->tag) {
@@ -174,14 +175,15 @@ static FILE *getFile(char *class_name) {
     char *filename;
     for (int i = 0; i < javaStates.num_class_path; i++) {
         size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
-        TRY(salloc(&filename, size));
-        sprintf(filename, "%s.%s.class", javaStates.class_path[i], class_name);
+        TRY(salloc((void **)&filename, size));
+        sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
 		if ((fp = fopen(filename, "r")) != NULL) {
 			TRY(sfree(filename));
 			break;
 		}
 		TRY(sfree(filename));
     }
+    if (fp == NULL) seterror("Not found class: %s", class_name);
     return fp;
 error:
     return NULL;
@@ -196,12 +198,8 @@ ClassFile *loadClass(char *class_name) {
     if (class != NULL) return class;
     
     fp = getFile(class_name);
-    if (fp == NULL) {
-
-    }
-    if (readClass(fp, class) != ERR) {
-        class->next = javaStates.classes;
-        return class;
-    } 
-    else return NULL;
+    if (fp == NULL) return NULL;
+    if (readClass(fp, class) == ERR) return NULL;
+    class->next = javaStates.classes;
+    return class;
 }

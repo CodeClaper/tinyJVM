@@ -8,6 +8,7 @@ typedef struct JavaStates {
     U2          num_class_path;
     char        **class_path;
     char        error[MAX_ERR_SIZE];
+    char        *class_name;
     ClassFile   *classes;
 } JavaStates;
 

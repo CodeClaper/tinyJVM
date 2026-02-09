@@ -14,31 +14,43 @@ static void usage() {
 }
 
 static void addClassPath(char *classpath) {
-    int r = srealloc(javaStates.classes, sizeof(char *) * (javaStates.num_class_path + 1));
-    if (r == ERR) seterror("Out of memory");
-    int s = sstrdup(javaStates.class_path[javaStates.num_class_path], classpath);
-    if (s == ERR) seterror("Out of memory");
+    if (javaStates.num_class_path == 0) TRY(salloc((void **)&javaStates.class_path, sizeof(char *)));
+    else TRY(srealloc(&javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1)));
+    TRY(sstrdup((char **)(javaStates.class_path + javaStates.num_class_path), classpath));
     javaStates.num_class_path++;
+    return;
+error:
+    seterror("Out of memory");
+    exit(EXIT_FAILURE);
 }
 
 /* Init java. */
 static void initJava(int argc, char *argv[]) {
-    for (int i = 0; i < argc; i++) {
+    int i;
+    for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-cp") == 0) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
-        }
+        } else TRY(sstrdup(&javaStates.class_name, argv[i]));
     }
-    if (javaStates.num_class_path == 0) 
-        addClassPath(".");
+    if (javaStates.num_class_path == 0) addClassPath(".");
+    return;
+error:
+    seterror("Out of memory");
+    exit(EXIT_FAILURE);
 }
 
-static void runJava(int argc, char *argv[]) {
-    loadClass(argv[0]);
+static void runJava(void) {
+    loadClass(javaStates.class_name);
+}
+
+static void existJava(void) {
+    perror(javaStates.error);
 }
 
 int main(int argc, char *argv[]) {
+	atexit(existJava);
     initJava(argc, argv);
-    runJava(argc, argv);
+    runJava();
     return EXIT_SUCCESS;
 }
