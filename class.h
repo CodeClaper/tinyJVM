@@ -305,11 +305,26 @@ typedef struct BootstrapMethods_attribute {
 typedef struct AttributeInfo {
     AttributeTag        tag;
     union {
-        struct ConstantValue_attribute      *constantvalue;
-        struct Code_attribute               *code;
-        struct StatckMapTable_attribute     *statckmaptable;
-        struct Exceptions_attribute         *exceptions;
-        struct InnerClasses_attribute       *innerclass;
+        struct ConstantValue_attribute                          *constantvalue;
+        struct Code_attribute                                   *code;
+        struct StatckMapTable_attribute                         *statckmaptable;
+        struct Exceptions_attribute                             *exceptions;
+        struct InnerClasses_attribute                           *innerclass;
+        struct EnclosingMethod_attribute                        *enclosingmethod;
+        struct Synthetic_attribute                              *synthetic;
+        struct Signature_attribute                              *sinature;
+        struct SourceFile_attribute                             *sourcefile;
+        struct SourceDebugExtension_attribute                   *sourcedebugextention;
+        struct LineNumberTable_attribute                        *linenumbertable;
+        struct LocalVariableTable_attribute                     *localvariabletable;
+        struct LocalVariableTypeTable_attribute                 *localvaraibletypetable;
+        struct Deprecated_attribute                             *deprecated;
+        struct RuntimeVisibleAnnotations_attribute              *runtimevisibleannotations;
+        struct RuntimeInVisibleAnnotations_attribute            *runtimeinvisibleannotations;
+        struct RuntimeVisibleParameterAnnotations_attribute     *runtimevisibleparameterannotations;
+        struct RuntimeInVisibleParameterAnnotations_attribute   *runtimeinvisibleparameterannotations;
+        struct AnnotationDefault_attribute                      *annotationdefault;
+        struct BootstrapMethods_attribute                       *bootstrapmethods;
     } info;
 } AttributeInfo;
 
