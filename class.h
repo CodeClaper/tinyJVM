@@ -1,5 +1,33 @@
 #include "c.h"
 
+/* ==========================================
+ * ClassFile Access Flags.
+ * ========================================== */
+#define ACC_CLASS_PUBLIC      0x0001  
+#define ACC_CLASS_FINAL       0x0010  
+#define ACC_CLASS_SUPER       0x0020 
+#define ACC_CLASS_INTERFACE   0x0200
+#define ACC_CLASS_ABSTRACT    0x0400
+#define ACC_CLASS_SYNTHETIC   0x1000
+#define ACC_CLASS_ANNOTATION  0x2000
+#define ACC_CLASS_ENUM        0x4000
+
+/* ==========================================
+ * Method Access Flags.
+ * ========================================== */
+#define ACC_METHOD_PUBLIC       0x0001
+#define ACC_METHOD_PRIVATE      0x0002
+#define ACC_METHOD_PROTECTED    0x0004
+#define ACC_METHOD_STATIC       0x0008
+#define ACC_METHOD_FINAL        0x0010
+#define ACC_METHOD_SYNCHRONIZED 0x0020
+#define ACC_METHOD_BRIDGE       0x0040
+#define ACC_METHOD_VARARGS      0x0080
+#define ACC_METHOD_NATIVE       0x0100
+#define ACC_METHOD_ABSTRACT     0x0400
+#define ACC_METHOD_STRICT       0x0800
+#define ACC_METHOD_SYNTHETIC    0x1000
+
 typedef enum ConstantTag {
     CONSTANT_Untagged           = 0,
     CONSTANT_Utf8               = 1,
@@ -20,20 +48,6 @@ typedef enum ConstantTag {
     CONSTANT_Module             = 19,
     CONSTANT_Package            = 20
 } ConstantTag;
-
-typedef enum AccessFlag {
-    ACC_NONE                    = 0x0000,
-    ACC_PUBLIC                  = 0x0001,
-    ACC_PRIVATE                 = 0x0002,
-    ACC_PROTECTED               = 0x0004,
-    ACC_STATIC                  = 0x0008,
-    ACC_FINAL                   = 0x0010,
-    ACC_INTERFACE               = 0x0200,
-    ACC_ABSTRACT                = 0x0400,
-    ACC_SYNTHETIC               = 0x1000,
-    ACC_ANNOTATION              = 0x2000,
-    ACC_ENUM                    = 0x4000
-} AccessFlag;
 
 typedef enum AttributeTag {
     ATT_CUSTOM,
