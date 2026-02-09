@@ -1,28 +1,14 @@
-CC = cc
-CFLAGS = -g -O2 -Wall -Wextra -std=c11
-LDFLAGS = -lpthread -lm
+SUBDIRS := src
+all: 
+	$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir);)
 
-JAVA  		:= java
-JAVAP 		:= javap
-JAVAOBJS 	:= java.o class.o
-JAVAPOBJS 	:= javap.o class.o
+.PHONY: all stat check clean
 
-all: ${JAVA} ${JAVAP}
+stat:
+	cloc src include 
 
-${JAVA}: ${JAVAOBJS}
-	$(CC) -o $@ $^ $(LDFLAGS)
+check:
+	##
 
-${JAVAP}: ${JAVAPOBJS}
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-java.o: 	java.h class.h c.h
-javap.o: 	javap.h class.h c.h
-class.o: 	class.h c.h
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $<
-
-clean:
-	rm -f ${JAVA} ${JAVAP} ${JAVAOBJS} ${JAVAPOBJS}
-
-.PHONY: all clean
+clean: 
+	@$(foreach dir, $(SUBDIRS), $(MAKE) -C $(dir) clean;)
