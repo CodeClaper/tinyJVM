@@ -159,7 +159,7 @@ static int checkClass(ClassFile *class) {
 /* Get class from cache. 
  * Return NULL if not found. */
 static ClassFile *getClassFromCache(char *class_name) {
-    for (ClassFile *class = javaServer.classes; 
+    for (ClassFile *class = javaStates.classes; 
             class != NULL; class = class->next) {
         if (strcmp(class_name, classGetClassName(class, class->this_class))) 
             return class;
@@ -167,11 +167,41 @@ static ClassFile *getClassFromCache(char *class_name) {
     return NULL;
 }
 
+/* Get file 
+ * Return NULL if not found. */
+static FILE *getFile(char *class_name) {
+    FILE *fp = NULL;
+    char *filename;
+    for (int i = 0; i < javaStates.num_class_path; i++) {
+        size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
+        TRY(salloc(&filename, size));
+        sprintf(filename, "%s.%s.class", javaStates.class_path[i], class_name);
+		if ((fp = fopen(filename, "r")) != NULL) {
+			TRY(sfree(filename));
+			break;
+		}
+		TRY(sfree(filename));
+    }
+    return fp;
+error:
+    return NULL;
+}
+
 /* Load class. */
 ClassFile *loadClass(char *class_name) {
     ClassFile *class;
+    FILE *fp;
 
     class = getClassFromCache(class_name);
     if (class != NULL) return class;
     
+    fp = getFile(class_name);
+    if (fp == NULL) {
+
+    }
+    if (readClass(fp, class) != ERR) {
+        class->next = javaStates.classes;
+        return class;
+    } 
+    else return NULL;
 }

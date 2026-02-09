@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <strings.h>
-#include <unistd.h>
 #include "java.h"
 
 void seterror(char *format, ...) {
@@ -25,5 +23,5 @@ void seterror(char *format, ...) {
     vsnprintf(message, len, format, ap);
     va_end(ap);
 
-    memcpy(javaServer.error, message, len);
+    memcpy(javaStates.error, message, len);
 }

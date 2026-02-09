@@ -6,8 +6,8 @@ headers = $(shell find $(includedir) -name "*.h")
 
 JAVA  		:= java
 JAVAP 		:= javap
-JAVAOBJS 	:= java.o class.o
-JAVAPOBJS 	:= javap.o class.o
+JAVAOBJS 	:= java.o class.o mmr.o util.o
+JAVAPOBJS 	:= javap.o class.o mmr.o util.o
 INC 		:= -I$(includedir)
 
 all: ${JAVA} ${JAVAP}

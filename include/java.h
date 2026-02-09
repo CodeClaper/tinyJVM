@@ -1,14 +1,15 @@
-#include "class.h"
-
 #ifndef __JAVA_H__
 #define __JAVA_H__
+#include "class.h"
 
-#define DEFAULT_BUFF_SIZE 256
+#define MAX_ERR_SIZE 256
 
-struct {
-    char        class_path[DEFAULT_BUFF_SIZE];
-    char        error[DEFAULT_BUFF_SIZE];
+typedef struct JavaStates {
+    U2          num_class_path;
+    char        **class_path;
+    char        error[MAX_ERR_SIZE];
     ClassFile   *classes;
-} javaServer;
+} JavaStates;
 
+extern struct JavaStates javaStates; /* server global state */
 #endif
