@@ -1,6 +1,9 @@
+#include <cstddef>
 #include <stdio.h>
+#include <string.h>
 #include "class.h"
 #include "mmr.h"
+#include "java.h"
 
 /* Read count bytes into buf. */
 static int readb(FILE *fp, void *buf, U4 count) {
@@ -123,6 +126,16 @@ error:
     return ERR;
 }
 
+/* Get class utf-8 string. */
+static char *classGetUtf8(ClassFile *class, U2 index) {
+    return class->constant_pool[index]->info.utf8_info.bytes;
+}
+
+static char *classGetClassName(ClassFile *class, U2 index) {
+    return classGetUtf8(class, class->constant_pool[index]->info.class_info.name_index);
+}
+
+/* Read class from file. */
 static int readClass(FILE *fp, ClassFile *class) {
     TRY(readu(fp, &class->magic, 4));
     TRY(readu(fp, &class->major_version, 2));
@@ -138,11 +151,28 @@ error:
     return ERR;
 }
 
+/* Check the class valid. */
 static int checkClass(ClassFile *class) {
     if (class->magic != MAGIC) return ERR;
     return OK;
 }
 
-ClassFile *loadClass(char *class_name) {
+/* Get class from cache. 
+ * Return NULL if not found. */
+static ClassFile *getClassFromCache(char *class_name) {
+    for (ClassFile *class = javaServer.classes; 
+            class != NULL; class = class->next) {
+        if (strcmp(class_name, classGetClassName(class, class->this_class))) 
+            return class;
+    }
+    return NULL;
+}
 
+/* Load class. */
+ClassFile *loadClass(char *class_name) {
+    ClassFile *class;
+
+    class = getClassFromCache(class_name);
+    if (class != NULL) return class;
+    
 }

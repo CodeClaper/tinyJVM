@@ -1,5 +1,7 @@
-#include <stdio.h>
 #include "c.h"
+
+#ifndef __CLASS_H__
+#define __CLASS_H__
 
 /* ==========================================
  * ClassFile Access Flags.
@@ -84,15 +86,15 @@ typedef enum FrameTag {
 } FrameTag;
 
 typedef enum VerificationTag {
-    ITEM_Top                = 0,
-    ITEM_Integer            = 1,
-    ITEM_Float              = 2,
-    ITEN_Long               = 4,
-    ITEN_Double             = 3,
-    ITEM_Null               = 5,
-    ITEM_UninitializedThis  = 6,
-    ITEM_Object             = 7,
-    ITEM_Uninitialized      = 8
+    ITEM_Top                    = 0,
+    ITEM_Integer                = 1,
+    ITEM_Float                  = 2,
+    ITEN_Long                   = 4,
+    ITEN_Double                 = 3,
+    ITEM_Null                   = 5,
+    ITEM_UninitializedThis      = 6,
+    ITEM_Object                 = 7,
+    ITEM_Uninitialized          = 8
 } VerificationTag;
 
 typedef struct CONSTANT_Utf8_info {
@@ -360,6 +362,11 @@ typedef struct MethodInfo {
 } MethodInfo;
 
 typedef struct ClassFile {
+    /* Extend part for class file. */
+    U1                  init;
+    struct ClassFile    *next;
+    struct ClassFile    *super;
+    /* Base part for class file. */
     U4                  magic;
     U2                  minor_version;
     U2                  major_version;
@@ -458,3 +465,6 @@ typedef struct StackMapFrame {
 
 
 ClassFile *loadClass(char *class_name);
+
+#endif
+
