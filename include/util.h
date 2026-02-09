@@ -1,0 +1,2 @@
+
+void seterror(char *format, ...);
