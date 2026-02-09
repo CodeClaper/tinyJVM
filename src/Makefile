@@ -18,8 +18,8 @@ ${JAVA}: ${JAVAOBJS}
 ${JAVAP}: ${JAVAPOBJS}
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h
-javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h
+java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h
+javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h
 class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h
 mmr.o:		$(includedir)/mmr.h
 util.o:		$(includedir)/util.h
