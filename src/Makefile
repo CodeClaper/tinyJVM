@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -g -O2 -Wall -Wextra -std=c11
+CFLAGS = -g -Wall -Wextra -std=c11
 LDFLAGS = -lpthread -lm
 includedir = ../include
 headers = $(shell find $(includedir) -name "*.h")
