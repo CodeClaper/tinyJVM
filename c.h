@@ -1,5 +1,15 @@
 #include <stdint.h>
-#define UNUSED(V) ((void) V)
+#define UNUSED(V)       ((void) V)
+#define ERR             -1
+#define OK              0
+#define MAGIC           0xCAFEBABE
+
+#define TRY(expr) \
+	do { \
+		if ((expr) == -1) { \
+			goto error; \
+		} \
+	} while(0)
 
 typedef uint8_t     U1;
 typedef uint16_t    U2;
