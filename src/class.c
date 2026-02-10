@@ -4,6 +4,7 @@
 #include "mmr.h"
 #include "java.h"
 #include "util.h"
+#include "instruct.h"
 
 
 static AttributeTag getAttrTag(char *attr_name);
@@ -140,14 +141,114 @@ error:
 }
 
 static int readcode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
+    U4 i, base;
+    I4 j, npairs;
+
     if (count == 0) {
         *code = NULL;
         return OK;
     }
-    
-    *code = salloc(sizeof(U1 *) * count);
-    if (*code == NULL) goto oom;
 
+    *code = salloc(sizeof(U1) * count);
+    if (*code == NULL) goto oom;
+    
+    for (i = 0; i < count; i++) {
+        TRY(readu(fp, &(*code)[i], 1));
+        if ((*code)[i] > CODE_LAST) {
+            seterror("Bad opcode");
+            goto error;
+        }
+        switch ((*code)[i]) {
+            case WIDE: {
+                TRY(readu(fp, &(*code)[++i], 1));
+                switch ((*code)[i]) {
+                    case IINC: 
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        break;
+                    case ILOAD: 
+                    case FLOAD: 
+                    case ALOAD: 
+                    case LLOAD: 
+                    case DLOAD: 
+                    case ISTORE: 
+                    case FSTORE: 
+                    case ASTORE: 
+                    case LSTORE: 
+                    case DSTORE:
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        TRY(readu(fp, &(*code)[++i], 1));
+                        break;
+                    default: 
+                        goto error;
+                        break;
+                }
+                break;
+            }
+            case LOOKUPSWITCH: {
+                while ((3 - (i % 4)) > 0)
+                    TRY(readu(fp, &(*code)[++i], 1));
+                for (j = 0; j < 8; j++)
+                    TRY(readu(fp, &(*code)[++i], 1));
+                npairs = ((*code)[i-3] << 24) | ((*code)[i-2] << 16) | ((*code)[i-1] << 8) | (*code)[i];
+                if (npairs < 0) {
+                    seterror("The npairs should not be less than zero in <lookupswitch> instruct.");
+                    goto error;
+                }
+                for (j = 8 * npairs; j > 0; j--)
+                    TRY(readu(fp, &(*code)[++i], 1));
+                break;
+            }
+            case TABLESWITCH: {
+                I4 offset, low, high;
+
+                base = i;
+                while ((3 - (i % 4)) > 0)
+                    TRY(readu(fp, &(*code)[++i], 1));
+                for (j = 0; j < 12; j++)
+                    TRY(readu(fp, &(*code)[++i], 1));
+                offset = ((*code)[i-11] << 24) | ((*code)[i-10] << 16) | ((*code)[i-9] << 8) | (*code)[i-8];
+                low = ((*code)[i-7] << 24) | ((*code)[i-6] << 16) | ((*code)[i-5] << 8) | (*code)[i-4];
+                high = ((*code)[i-3] << 24) | ((*code)[i-2] << 16) | ((*code)[i-1] << 8) | (*code)[i];
+
+                if (base + offset < 0 || base + offset > count) {
+                    seterror("The offset out of boundary in <tableswitch> instruct.");
+                    goto error;
+                }
+                if (low > high) {
+                    seterror("The high should not be less than low in <tableswitch> instruct.");
+                    goto error;
+                }
+
+                for (j = low; j <= high; j++) {
+                    TRY(readu(fp, &(*code)[++i], 1));
+                    TRY(readu(fp, &(*code)[++i], 1));
+                    TRY(readu(fp, &(*code)[++i], 1));
+                    TRY(readu(fp, &(*code)[++i], 1));
+
+                    offset = ((*code)[i-3] << 24) | ((*code)[i-2] << 16) | ((*code)[i-1] << 8) | (*code)[i];
+                    if (base + offset < 0 || base + offset > count) {
+                        seterror("The offset out of boundary in <tableswitch> instruct.");
+                        goto error;
+                    }
+                }
+                break;
+            }
+            default: {
+                for (U2 j = classGetNoperands((*code)[i]); j > 0; j--) 
+                    TRY(readu(fp, &(*code)[++i], 1));
+                break;
+            }
+        }
+    }
+
+	if (i != count) {
+        seterror("Read code attribute fail.");
+		goto error;
+    }
+    return OK;
 oom:
     seterror("Out of memory");
 error:
@@ -161,8 +262,9 @@ static int readinterface(FILE *fp, U2 **p, U2 count) {
 	}
     *p = salloc(sizeof(U2 *) * count);
     if (*p == NULL) goto oom;
-	for (U2 i = 0; i < count; i++)
+	for (U2 i = 0; i < count; i++) {
 		TRY(readu(fp, &(*p)[i], 2));
+    }
 	return OK;
 oom:
     seterror("Out of memory");
@@ -181,14 +283,16 @@ static int readattribute(FILE *fp, AttributeInfo ***attributes, ClassFile *class
 
     for (U2 i = 0; i < count; i++) {
         U2 attr_name_index;
-        U4 attr_length;
         AttributeInfo *attr;
 
         attr = salloc(sizeof(AttributeInfo));
         if (attr == NULL) goto oom;
         TRY(readu(fp, &attr_name_index, 2));
         attr->tag = getAttrTag(classGetUtf8(class, attr_name_index));
+
         switch (attr->tag) {
+            case ATT_CUSTOM:
+                break;
             case ATT_ConstantValue:
                 TRY(readu(fp, &attr->info.constantvalue.attribute_length, 4));
                 TRY(readu(fp, &attr->info.constantvalue.constantvalue_index, 2));
@@ -199,6 +303,24 @@ static int readattribute(FILE *fp, AttributeInfo ***attributes, ClassFile *class
                 TRY(readu(fp, &attr->info.code.max_locals, 2));
                 TRY(readu(fp, &attr->info.code.code_length, 4));
                 TRY(readcode(fp, &attr->info.code.code, class, attr->info.code.code_length));
+                break;
+            case ATT_StatckMapTable:
+            case ATT_Exceptions:
+            case ATT_InnerClass:
+            case ATT_EnclosingMethod:
+            case ATT_Synthetic:
+            case ATT_Signature:
+            case ATT_SourceFile:
+            case ATT_SourceDebugExtension:
+            case ATT_LineNumberTable:
+            case ATT_LocalVariableTypeTable:
+            case ATT_Deprecated:
+            case ATT_RuntimeVisibleAnnotations:
+            case ATT_RuntimeInVisibleAnnotations:
+            case ATT_RuntimeVisibleParameterAnnotations:
+            case ATT_RuntimeInVisibleParameterAnnotations:
+            case ATT_AnnotationDefault:
+            case ATT_BootstrapMethods:
                 break;
         }
         (*attributes)[i] = attr;
