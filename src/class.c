@@ -5,6 +5,10 @@
 #include "java.h"
 #include "util.h"
 
+
+static AttributeTag getAttrTag(char *attr_name);
+static char *classGetUtf8(ClassFile *class, U2 index);
+
 /* Read count bytes into buf. */
 static int readb(FILE *fp, void *buf, U4 count) {
     if (fread(buf, 1, count, fp) != count) return ERR;
@@ -47,11 +51,10 @@ error:
     return ERR;
 }
 
-
 /* Raad the constant pool. */
 static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
     if (count == 0) {
-        cp = NULL;
+        *cp = NULL;
         return OK;
     }
 
@@ -136,6 +139,102 @@ error:
     return ERR;
 }
 
+static int readcode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
+    if (count == 0) {
+        *code = NULL;
+        return OK;
+    }
+    
+    *code = salloc(sizeof(U1 *) * count);
+    if (*code == NULL) goto oom;
+
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readinterface(FILE *fp, U2 **p, U2 count) {
+	if (count == 0) {
+		*p = NULL;
+		return OK;
+	}
+    *p = salloc(sizeof(U2 *) * count);
+    if (*p == NULL) goto oom;
+	for (U2 i = 0; i < count; i++)
+		TRY(readu(fp, &(*p)[i], 2));
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readattribute(FILE *fp, AttributeInfo ***attributes, ClassFile *class, U2 count) {
+    if (count == 0) {
+        *attributes = NULL;
+        return OK;
+    }
+
+    *attributes = salloc(sizeof(AttributeInfo *) * count);
+    if (attributes == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        U2 attr_name_index;
+        U4 attr_length;
+        AttributeInfo *attr;
+
+        attr = salloc(sizeof(AttributeInfo));
+        if (attr == NULL) goto oom;
+        TRY(readu(fp, &attr_name_index, 2));
+        attr->tag = getAttrTag(classGetUtf8(class, attr_name_index));
+        switch (attr->tag) {
+            case ATT_ConstantValue:
+                TRY(readu(fp, &attr->info.constantvalue.attribute_length, 4));
+                TRY(readu(fp, &attr->info.constantvalue.constantvalue_index, 2));
+                break;
+            case ATT_Code:
+                TRY(readu(fp, &attr->info.code.attribute_length, 4));
+                TRY(readu(fp, &attr->info.code.max_stack, 2));
+                TRY(readu(fp, &attr->info.code.max_locals, 2));
+                TRY(readu(fp, &attr->info.code.code_length, 4));
+                TRY(readcode(fp, &attr->info.code.code, class, attr->info.code.code_length));
+                break;
+        }
+        (*attributes)[i] = attr;
+    }
+
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readfield(FILE *fp, FieldInfo ***fields, ClassFile *class, U2 count) {
+    if (count == 0) {
+        *fields = NULL;
+        return OK;
+    }
+    
+    *fields = salloc(sizeof(FieldInfo *) * count);
+    if (*fields == NULL) goto oom;
+    for (U2 i = 0; i < count; i++) {
+        FieldInfo *field = salloc(sizeof(FieldInfo));
+        if (field == NULL) goto oom;
+        TRY(readu(fp, &field->access_flags, 2));
+        TRY(readu(fp, &field->name_index, 2));
+        TRY(readu(fp, &field->descriptor_index, 2));
+        TRY(readu(fp, &field->attribute_count, 2));
+        TRY(readattribute(fp, &field->attributes, class, field->attribute_count));
+        (*fields)[i] = field;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
 /* Get class utf-8 string. */
 static char *classGetUtf8(ClassFile *class, U2 index) {
     return class->constant_pool[index]->info.utf8_info.bytes;
@@ -156,6 +255,9 @@ static int readClass(FILE *fp, ClassFile *class) {
 	TRY(readu(fp, &class->this_class, 2));
 	TRY(readu(fp, &class->super_class, 2));
 	TRY(readu(fp, &class->interfaces_count, 2));
+	TRY(readinterface(fp, &class->interfaces, 2));
+	TRY(readu(fp, &class->fields_count, 2));
+	TRY(readfield(fp, &class->fields, class, class->fields_count));
     return OK;
 error:
     return ERR;
@@ -176,6 +278,38 @@ static ClassFile *getClassFromCache(char *class_name) {
             return class;
     }
     return NULL;
+}
+
+/* Get AttributeTag by name. */
+static AttributeTag getAttrTag(char *attr_name) {
+	static struct {
+		AttributeTag t;
+		char *s;
+	} tags[] = {
+		{ATT_ConstantValue,                         "ConstantValue" },
+		{ATT_Code,                                  "Code"},
+		{ATT_StatckMapTable,                        "StatckMapTable"},
+		{ATT_Exceptions,                            "Exceptions"},
+		{ATT_InnerClass,                            "InnerClasses"},
+		{ATT_EnclosingMethod,                       "EnclosingMethod"},
+		{ATT_Synthetic,                             "Synthetic"},
+		{ATT_Signature,                             "Signature"},
+		{ATT_SourceFile,                            "SourceFile"},
+		{ATT_SourceDebugExtension,                  "SourceDebugExtension"},
+		{ATT_LineNumberTable,                       "LineNumberTable"},
+		{ATT_LocalVariableTypeTable,                "LocalVariableTypeTable"},
+		{ATT_Deprecated,                            "Deprecated"},
+		{ATT_RuntimeVisibleAnnotations,             "RuntimeVisibleAnnotations"},
+		{ATT_RuntimeInVisibleAnnotations,           "RuntimeInVisibleAnnotations"},
+		{ATT_RuntimeVisibleParameterAnnotations,    "RuntimeVisibleParameterAnnotations"},
+		{ATT_RuntimeInVisibleParameterAnnotations,  "RuntimeInVisibleParameterAnnotations"},
+		{ATT_AnnotationDefault,                     "AnnotationDefault"},
+		{ATT_BootstrapMethods,                      "BootstrapMethods"}
+	};
+	for (U2 i = 0; tags[i].s; i++)
+		if (strcmp(attr_name, tags[i].s) == 0)
+            return tags[i].t;
+	return ATT_CUSTOM;
 }
 
 /* Get file 
