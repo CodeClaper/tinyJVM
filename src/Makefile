@@ -6,8 +6,8 @@ headers = $(shell find $(includedir) -name "*.h")
 
 JAVA  		:= java
 JAVAP 		:= javap
-JAVAOBJS 	:= java.o class.o mmr.o util.o
-JAVAPOBJS 	:= javap.o class.o mmr.o util.o
+JAVAOBJS 	:= java.o class.o mmr.o util.o instruct.o
+JAVAPOBJS 	:= javap.o class.o mmr.o util.o instruct.o
 INC 		:= -I$(includedir)
 
 all: ${JAVA} ${JAVAP}
@@ -18,9 +18,10 @@ ${JAVA}: ${JAVAOBJS}
 ${JAVAP}: ${JAVAPOBJS}
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h
-javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h
-class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h
+java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h
+javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h	$(includedir)/instruct.h
+class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/instruct.h
+instruct.o:	$(includedir)/instruct.h $(includedir)/c.h
 mmr.o:		$(includedir)/mmr.h
 util.o:		$(includedir)/util.h
 
