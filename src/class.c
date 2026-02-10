@@ -60,10 +60,10 @@ static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
 
     /* CP starts from 1. */
     for (int i = 1; i < count; i++) {
-        **cp = salloc(sizeof(ConstantPoolInfo));
-        if (**cp == NULL) goto oom;
-        ConstantPoolInfo *current = **cp;
-        TRY(readu(fp, &current->tag, 2));
+        (*cp)[i] = salloc(sizeof(ConstantPoolInfo));
+        if ((*cp)[i] == NULL) goto oom;
+        ConstantPoolInfo *current = (*cp)[i];
+        TRY(readu(fp, &current->tag, 1));
         switch (current->tag) {
             case CONSTANT_Utf8:
                 TRY(readu(fp, &current->info.utf8_info.length, 2));
@@ -129,6 +129,7 @@ static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
             default: goto error;
         }
     }
+    return OK;
 oom:
     seterror("Out of memory");
 error:
@@ -203,8 +204,7 @@ static FILE *getFile(char *class_name) {
     return fp;
 }
 
-/* Load class. */
-ClassFile *loadClass(char *class_name) {
+static ClassFile *getClass(char *class_name) {
     ClassFile *class;
     FILE *fp;
 
@@ -217,5 +217,13 @@ ClassFile *loadClass(char *class_name) {
     if (readClass(fp, class) == ERR) return NULL;
 
     class->next = javaStates.classes;
+    return class;
+}
+
+/* Load class. */
+ClassFile *loadClass(char *class_name) {
+    ClassFile *class = getClass(class_name);
+    if (class == NULL) return NULL;
+    checkClass(class);
     return class;
 }

@@ -53,6 +53,7 @@ static void existJava(void) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc < 2) usage();
 	atexit(existJava);
     initJava(argc, argv);
     runJava();
