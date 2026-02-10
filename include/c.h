@@ -11,6 +11,9 @@
 		} \
 	} while(0)
 
+#define Assert(condition) assert(condition)
+#define AssertFalse(condition) assert(!(condition))
+
 typedef uint8_t     U1;
 typedef uint16_t    U2;
 typedef uint32_t    U4;
