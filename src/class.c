@@ -182,6 +182,7 @@ static int readcode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
                         TRY(readu(fp, &(*code)[++i], 1));
                         break;
                     default: 
+                        seterror("Bad opcode.");
                         goto error;
                         break;
                 }
@@ -359,6 +360,10 @@ error:
 
 /* Get class utf-8 string. */
 static char *classGetUtf8(ClassFile *class, U2 index) {
+    if (index == 0) {
+        seterror("The index of constant pool can't be zero. ");
+        exit(EXIT_FAILURE);
+    }
     return class->constant_pool[index]->info.utf8_info.bytes;
 }
 
@@ -377,7 +382,7 @@ static int readClass(FILE *fp, ClassFile *class) {
 	TRY(readu(fp, &class->this_class, 2));
 	TRY(readu(fp, &class->super_class, 2));
 	TRY(readu(fp, &class->interfaces_count, 2));
-	TRY(readinterface(fp, &class->interfaces, 2));
+	TRY(readinterface(fp, &class->interfaces, class->interfaces_count));
 	TRY(readu(fp, &class->fields_count, 2));
 	TRY(readfield(fp, &class->fields, class, class->fields_count));
     return OK;

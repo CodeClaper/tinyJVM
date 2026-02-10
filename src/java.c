@@ -49,7 +49,7 @@ static void runJava(void) {
 }
 
 static void existJava(void) {
-    perror(javaStates.error);
+    fprintf(stderr, "%s\n", javaStates.error);
 }
 
 int main(int argc, char *argv[]) {
