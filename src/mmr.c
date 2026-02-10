@@ -1,28 +1,28 @@
 #include <string.h>
 #include <stdlib.h>
+#include "mmr.h"
 #include "c.h"
 
-int salloc(void **p, size_t size) {
-    *p = malloc(size);
-    if (*p == NULL) return ERR;
-    memset(*p, 0, size);
-    return OK;
+void *salloc(size_t size) {
+    void *p = malloc(size);
+    if (p == NULL) return NULL;
+    memset(p, 0, size);
+    return p;
 }
 
-int srealloc(void *p, size_t size) {
+void *srealloc(void *p, size_t size) {
     p = realloc(p, size);
-    return (p == NULL) ? ERR : OK;
+    return p;
 }
 
-int sstrdup(char **p, char *input) {
+char *sstrdup(char *input) {
     size_t size = strlen(input);
-    int r = salloc((void **)p, size + 1);
-    if (r == ERR) return ERR;
-    memcpy(*p, input, size);
-    return OK;
+    void *p = salloc(size + 1);
+    if (p == NULL) return NULL;
+    memcpy(p, input, size);
+    return p;
 }
 
-int sfree(void *p) {
+void sfree(void *p) {
     free(p);
-    return OK;
 }

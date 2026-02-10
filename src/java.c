@@ -14,9 +14,10 @@ static void usage() {
 }
 
 static void addClassPath(char *classpath) {
-    if (javaStates.num_class_path == 0) TRY(salloc((void **)&javaStates.class_path, sizeof(char *)));
-    else TRY(srealloc(&javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1)));
-    TRY(sstrdup((char **)(javaStates.class_path + javaStates.num_class_path), classpath));
+    javaStates.class_path = srealloc(javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1));
+    if (javaStates.class_path == NULL) goto error;
+    javaStates.class_path[javaStates.num_class_path] = sstrdup(classpath);
+    if (javaStates.class_path[javaStates.num_class_path] == NULL) goto error;
     javaStates.num_class_path++;
     return;
 error:
@@ -31,7 +32,10 @@ static void initJava(int argc, char *argv[]) {
         if (strcmp(argv[i], "-cp") == 0) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
-        } else TRY(sstrdup(&javaStates.class_name, argv[i]));
+        } else {
+            javaStates.class_name = sstrdup(argv[i]);
+            if (javaStates.class_name == NULL) goto error;;
+        }
     }
     if (javaStates.num_class_path == 0) addClassPath(".");
     return;

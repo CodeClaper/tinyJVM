@@ -36,10 +36,13 @@ error:
 
 /* Read string into buffer. */
 static int reads(FILE *fp, char **s, U2 count) {
-    TRY(salloc((void **)s, count + 1));
+    *s = salloc(count + 1);
+    if (*s == NULL) goto oom;
     TRY(readb(fp, *s, count));
     (*s)[count] = '\0';
     return OK;
+oom:
+    seterror("Out of memory");
 error:
     return ERR;
 }
@@ -51,10 +54,14 @@ static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
         cp = NULL;
         return OK;
     }
-    TRY(salloc((void **)*cp, sizeof(ConstantPoolInfo *) * count));
+
+    *cp = salloc(sizeof(ConstantPoolInfo *) * count);
+    if (cp == NULL) goto oom;
+
     /* CP starts from 1. */
     for (int i = 1; i < count; i++) {
-        TRY(salloc((void **)cp, sizeof(ConstantPoolInfo)));
+        **cp = salloc(sizeof(ConstantPoolInfo));
+        if (**cp == NULL) goto oom;
         ConstantPoolInfo *current = **cp;
         TRY(readu(fp, &current->tag, 2));
         switch (current->tag) {
@@ -122,6 +129,8 @@ static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
             default: goto error;
         }
     }
+oom:
+    seterror("Out of memory");
 error:
     return ERR;
 }
@@ -173,20 +182,25 @@ static ClassFile *getClassFromCache(char *class_name) {
 static FILE *getFile(char *class_name) {
     FILE *fp = NULL;
     char *filename;
+
     for (int i = 0; i < javaStates.num_class_path; i++) {
         size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
-        TRY(salloc((void **)&filename, size));
+        filename = salloc(size);
+        if (filename == NULL) {
+            seterror("Out of memory");
+            return NULL;
+        }
         sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
 		if ((fp = fopen(filename, "r")) != NULL) {
-			TRY(sfree(filename));
+			sfree(filename);
 			break;
 		}
-		TRY(sfree(filename));
+		sfree(filename);
     }
-    if (fp == NULL) seterror("Not found class: %s", class_name);
+
+    if (fp == NULL) 
+        seterror("Not found class: %s", class_name);
     return fp;
-error:
-    return NULL;
 }
 
 /* Load class. */
@@ -196,10 +210,12 @@ ClassFile *loadClass(char *class_name) {
 
     class = getClassFromCache(class_name);
     if (class != NULL) return class;
-    
+    class = salloc(sizeof(ClassFile));
+    if (class == NULL) return NULL;
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) return NULL;
+
     class->next = javaStates.classes;
     return class;
 }

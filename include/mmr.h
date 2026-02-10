@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-int salloc(void **p, size_t size);
-int srealloc(void *p, size_t size);
-int sstrdup(char **p, char *input);
-int sfree(void *p);
+void *salloc(size_t size);
+void *srealloc(void *p, size_t size);
+char *sstrdup(char *input);
+void sfree(void *p);
