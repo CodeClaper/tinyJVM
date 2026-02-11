@@ -26,7 +26,7 @@ error:
 }
 
 /* Init java. */
-static void initJava(int argc, char *argv[]) {
+static void init(int argc, char *argv[]) {
     int i;
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-cp") == 0) {
@@ -44,19 +44,19 @@ error:
     exit(EXIT_FAILURE);
 }
 
-static void runJava(void) {
+static void java(void) {
     ClassFile *class = loadClass(javaStates.class_name);
     if (class == NULL) exit(EXIT_FAILURE);
 }
 
-static void existJava(void) {
+static void afterexist(void) {
     fprintf(stderr, "%s\n", javaStates.error);
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 2) usage();
-	atexit(existJava);
-    initJava(argc, argv);
-    runJava();
+	atexit(afterexist);
+    init(argc, argv);
+    java();
     return EXIT_SUCCESS;
 }
