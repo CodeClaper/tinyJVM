@@ -15,12 +15,12 @@ static void usage() {
 
 static void addClassPath(char *classpath) {
     javaStates.class_path = srealloc(javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1));
-    if (javaStates.class_path == NULL) goto error;
+    if (javaStates.class_path == NULL) goto oom;
     javaStates.class_path[javaStates.num_class_path] = sstrdup(classpath);
-    if (javaStates.class_path[javaStates.num_class_path] == NULL) goto error;
+    if (javaStates.class_path[javaStates.num_class_path] == NULL) goto oom;
     javaStates.num_class_path++;
     return;
-error:
+oom:
     seterror("Out of memory");
     exit(EXIT_FAILURE);
 }
@@ -34,12 +34,12 @@ static void init(int argc, char *argv[]) {
             else addClassPath(argv[i]);
         } else {
             javaStates.class_name = sstrdup(argv[i]);
-            if (javaStates.class_name == NULL) goto error;;
+            if (javaStates.class_name == NULL) goto oom;;
         }
     }
     if (javaStates.num_class_path == 0) addClassPath(".");
     return;
-error:
+oom:
     seterror("Out of memory");
     exit(EXIT_FAILURE);
 }
