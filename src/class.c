@@ -616,6 +616,7 @@ static int readAnnotation(FILE *fp, Annotation **p) {
     TRY(readu(fp, &annotation->num_element_value_pairs, 2));
     TRY(readElementPairs(fp, &annotation->pairs, annotation->num_element_value_pairs));
     *p = annotation;
+    return OK;
 oom:
     seterror("Out of memory");
 error:
@@ -809,7 +810,7 @@ static int readAttributes(FILE *fp, AttributeInfo ***attributes, ClassFile *clas
         }
         (*attributes)[i] = attr;
     }
-
+    return OK;
 oom:
     seterror("Out of memory");
 error:
@@ -859,7 +860,6 @@ static int readMethods(FILE *fp, MethodInfo ***p, ClassFile *class, U2 count) {
         TRY(readu(fp, &method->name_index, 2));
         TRY(readu(fp, &method->descriptor_index, 2));
         TRY(readu(fp, &method->attribute_count, 2));
-        TRY(readu(fp, &method->attribute_count, 2));
         TRY(readAttributes(fp, &method->attributes, class, method->attribute_count));
         (*p)[i] = method;
     }
@@ -908,7 +908,10 @@ error:
 
 /* Check the class valid. */
 static int checkClass(ClassFile *class) {
-    if (class->magic != MAGIC) return ERR;
+    if (class->magic != MAGIC) {
+        seterror("Bad magic");
+        return ERR;
+    }
     return OK;
 }
 

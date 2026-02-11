@@ -45,7 +45,8 @@ error:
 }
 
 static void runJava(void) {
-    loadClass(javaStates.class_name);
+    ClassFile *class = loadClass(javaStates.class_name);
+    if (class == NULL) exit(EXIT_FAILURE);
 }
 
 static void existJava(void) {
