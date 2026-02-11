@@ -230,4 +230,4 @@ typedef enum Instruction {
 	IMPDEP2         = 0xFF
 } Instruction;
 
-int classGetNoperands(U1 instruction);
+int getNoperands(U1 instruction);

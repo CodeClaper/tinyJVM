@@ -210,6 +210,6 @@ static int noperands[] = {
 };
 
 /* Get number of operands of a given instruction */
-int classGetNoperands(U1 instruction) {
+int getNoperands(U1 instruction) {
 	return noperands[instruction];
 }

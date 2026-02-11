@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "class.h"
 #include "mmr.h"
 #include "java.h"
@@ -7,8 +8,11 @@
 #include "instruct.h"
 
 
+static FrameTag getFramTag(U1 val);
 static AttributeTag getAttrTag(char *attr_name);
 static char *classGetUtf8(ClassFile *class, U2 index);
+static int readAnnotation(FILE *fp, Annotation **annotation);
+static int readElementValues(FILE *fp, ElementValue ***p, U2 count);
 
 /* Read count bytes into buf. */
 static int readb(FILE *fp, void *buf, U4 count) {
@@ -52,8 +56,44 @@ error:
     return ERR;
 }
 
+static int readIndex(FILE *fp, U2 **p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(U2) * count);
+    if (*p == NULL) goto oom;
+    for (U2 i = 0; i < count; i++) 
+        TRY(readu(fp, &(*p)[i], 2));
+
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+    return ERR;
+}
+
+static int readBytes(FILE *fp, U1 **p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(U1) * count);
+    if (*p == NULL) goto oom;
+    for (U2 i = 0; i < count; i++) 
+        TRY(readu(fp, &(*p)[i], 1));
+
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+    return ERR;
+}
+
 /* Raad the constant pool. */
-static int readcp(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
+static int readCP(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
     if (count == 0) {
         *cp = NULL;
         return OK;
@@ -140,7 +180,7 @@ error:
     return ERR;
 }
 
-static int readcode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
+static int readCode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
     U4 i, base;
     I4 j, npairs;
 
@@ -238,7 +278,7 @@ static int readcode(FILE *fp, U1 **code, ClassFile *class, U4 count) {
                 break;
             }
             default: {
-                for (U2 j = classGetNoperands((*code)[i]); j > 0; j--) 
+                for (U2 j = getNoperands((*code)[i]); j > 0; j--) 
                     TRY(readu(fp, &(*code)[++i], 1));
                 break;
             }
@@ -256,15 +296,235 @@ error:
 	return ERR;
 }
 
-static int readinterface(FILE *fp, U2 **p, U2 count) {
+static int readVerificationType(FILE *fp, VerificationTypeInfo ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(VerificationTypeInfo *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        VerificationTypeInfo *ver = salloc(sizeof(VerificationTypeInfo));
+        TRY(readu(fp, &ver->tag, 1));
+        switch (ver->tag) {
+            case ITEM_Object:
+            case ITEM_Uninitialized:
+                TRY(readu(fp, &ver->cpool_index_or_offset, 2));
+                break;
+            default: 
+                break;
+        }
+        (*p)[i] = ver;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readStackMapFrame(FILE *fp, StackMapFrame ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(StackMapFrame *) * count);
+    if (*p == NULL) goto oom;
+    
+    for (U2 i = 0; i < count; i++) {
+        StackMapFrame *frame = salloc(sizeof(StackMapFrame));
+        TRY(readu(fp, &frame->frame_type, 1));
+        FrameTag tag = getFramTag(frame->frame_type);
+        switch (tag) {
+            case SAME_FRAME: {
+                frame->offset_delta = frame->frame_type;
+                frame->num_stack = 0;
+                frame->num_local = 0;
+                break;
+            }
+            case SAME_LOCALS_1_STACK_ITEM_FRAME: {
+                frame->offset_delta = frame->frame_type - 64;
+                frame->num_stack = 1;
+                TRY(readVerificationType(fp, &frame->statck, frame->num_stack));
+                break;
+            }
+            case SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED: {
+                TRY(readu(fp, &frame->offset_delta, 2));
+                frame->num_stack = 1;
+                TRY(readVerificationType(fp, &frame->statck, frame->num_stack));
+                break;
+            }
+            case CHOP_FRAME: {
+                TRY(readu(fp, &frame->offset_delta, 2));
+                frame->num_local = 0;
+                break;
+            }
+            case SAME_FRAME_EXTENDED: {
+                TRY(readu(fp, &frame->offset_delta, 2));
+                break;
+            }
+            case APPEND_FRAME: {
+                TRY(readu(fp, &frame->offset_delta, 2));
+                frame->num_local = frame->frame_type - 251;
+                TRY(readVerificationType(fp, &frame->locals, frame->num_local));
+                break;
+            }
+            case FULL_FRAME: {
+                TRY(readu(fp, &frame->offset_delta, 2));
+                TRY(readu(fp, &frame->num_local, 2));
+                TRY(readVerificationType(fp, &frame->locals, frame->num_local));
+                TRY(readu(fp, &frame->num_stack, 2));
+                TRY(readVerificationType(fp, &frame->statck, frame->num_stack));
+                break;
+            }
+            default: {
+                seterror("Wrong frame type");
+                goto error;
+            }
+        }
+        (*p)[i] = frame;
+    }
+
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readLineNumber(FILE *fp, LineNumber ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(LineNumber *) * count);
+    if (p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        LineNumber *line = salloc(sizeof(LineNumber));
+        TRY(readu(fp, &line->start_pc, 2));
+        TRY(readu(fp, &line->line_number, 2));
+        (*p)[i] = line;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readLocalVariable(FILE *fp, LocalVariable ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+    
+    *p = salloc(sizeof(LocalVariable *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        LocalVariable *lv = salloc(sizeof(LocalVariable));
+        TRY(readu(fp, &lv->start_pc, 2));
+        TRY(readu(fp, &lv->length, 2));
+        TRY(readu(fp, &lv->name_index, 2));
+        TRY(readu(fp, &lv->descriptor_index, 2));
+        TRY(readu(fp, &lv->index, 2));
+        (*p)[i] = lv;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readLocalVariableType(FILE *fp, LocalVariableType ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+    
+    *p = salloc(sizeof(LocalVariableType *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        LocalVariableType *lvt = salloc(sizeof(LocalVariableType));
+        TRY(readu(fp, &lvt->start_pc, 2));
+        TRY(readu(fp, &lvt->length, 2));
+        TRY(readu(fp, &lvt->name_index, 2));
+        TRY(readu(fp, &lvt->signature_index, 2));
+        TRY(readu(fp, &lvt->index, 2));
+        (*p)[i] = lvt;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readExceptions(FILE *fp, Exception ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+    
+    *p = salloc(sizeof(Exception *) * count);
+    if (p == NULL) goto oom;
+    for (U2 i = 0; i < count; i++) {
+        (*p)[i] = salloc(sizeof(Exception));
+        if ((*p)[i] == NULL) goto oom;
+		TRY(readu(fp, &(*p)[i]->start_pc, 2));
+		TRY(readu(fp, &(*p)[i]->end_pc, 2));
+		TRY(readu(fp, &(*p)[i]->handler_pc, 2));
+		TRY(readu(fp, &(*p)[i]->catch_type, 2));
+    }
+
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readInterfaces(FILE *fp, U2 **p, U2 count) {
 	if (count == 0) {
 		*p = NULL;
 		return OK;
 	}
+
     *p = salloc(sizeof(U2 *) * count);
     if (*p == NULL) goto oom;
 	for (U2 i = 0; i < count; i++) {
 		TRY(readu(fp, &(*p)[i], 2));
+    }
+
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readInnerClasses(FILE *fp, InnerClass ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(InnerClass *) * count);
+    if (*p == NULL) goto oom;
+    for (U2 i = 0; i < count; i++) {
+        InnerClass *class = salloc(sizeof(InnerClass));
+		TRY(readu(fp, &class->inner_class_info_index, 2));
+		TRY(readu(fp, &class->outer_class_info_index, 2));
+		TRY(readu(fp, &class->inner_name_index, 2));
+		TRY(readu(fp, &class->inner_calss_access_flags, 2));
+        (*p)[i] = class;
     }
 	return OK;
 oom:
@@ -273,7 +533,162 @@ error:
 	return ERR;
 }
 
-static int readattribute(FILE *fp, AttributeInfo ***attributes, ClassFile *class, U2 count) {
+static int readElementValue(FILE *fp, ElementValue *p) {
+    TRY(readu(fp, &p->tag, 1));
+    switch (p->tag) {
+        case 'B': case 'C': case 'D': case 'F': case 'I': 
+        case 'J': case 'S': case 'Z': case 's':
+            TRY(readu(fp, &p->value.const_value_index, 2));
+            break;
+        case 'e':
+            TRY(readu(fp, &p->value.enum_const_value.type_name_index, 2));
+            TRY(readu(fp, &p->value.enum_const_value.consta_name_index, 2));
+            break;
+        case 'c':
+            TRY(readu(fp, &p->value.class_info_index, 2));
+            break;
+        case '@':
+            TRY(readu(fp, &p->value.class_info_index, 2));
+            TRY(readAnnotation(fp, &p->value.annotation_value));
+            break;
+        case '[':
+            TRY(readu(fp, &p->value.array_value.num_values, 2));
+            TRY(readElementValues(fp, &p->value.array_value.values, p->value.array_value.num_values));
+            break;
+        default:
+            seterror("Bad element value tag.");
+            goto error;
+    }
+	return OK;
+error:
+	return ERR;
+}
+
+static int readElementValues(FILE *fp, ElementValue ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+    
+    *p = salloc(sizeof(ElementValue *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        ElementValue *val = malloc(sizeof(ElementValue));
+        if (val == NULL) goto oom;
+        TRY(readElementValue(fp, val));
+        (*p)[i] = val;
+    }
+
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readElementPairs(FILE *fp, ElementPair ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(ElementPair *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        ElementPair *pair = salloc(sizeof(ElementPair));
+        TRY(readu(fp, &pair->element_name_index, 2));
+        TRY(readElementValue(fp, &pair->value));
+        (*p)[i] = pair;
+    }
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readAnnotation(FILE *fp, Annotation **p) {
+    Annotation *annotation = salloc(sizeof(Annotation));
+    if (annotation == NULL) goto oom;
+    TRY(readu(fp, &annotation->type_index, 2));
+    TRY(readu(fp, &annotation->num_element_value_pairs, 2));
+    TRY(readElementPairs(fp, &annotation->pairs, annotation->num_element_value_pairs));
+    *p = annotation;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readAnnotations(FILE *fp, Annotation ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(Annotation *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) TRY(readAnnotation(fp, &(*p)[i]));
+
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readParameterAnnotations(FILE *fp, ParameterAnnotation ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(ParameterAnnotation *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        ParameterAnnotation *pa = salloc(sizeof(ParameterAnnotation));
+        if (pa == NULL) goto oom;
+        TRY(readu(fp, &pa->num_annotations, 2));
+        TRY(readAnnotations(fp, &pa->annotations, pa->num_annotations));
+        (*p)[i] = pa;
+    }
+
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readBootstrapMethods(FILE *fp, BootstrapMethod ***p, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+
+    *p = salloc(sizeof(BootstrapMethod *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        BootstrapMethod *method = salloc(sizeof(BootstrapMethod));
+        if (method == NULL) goto oom;
+        TRY(readu(fp, &method->bootstrap_method_ref, 2));
+        TRY(readu(fp, &method->num_bootstrap_arguments, 2));
+        TRY(readIndex(fp, &method->bootstrap_arguments, method->num_bootstrap_arguments));
+        (*p)[i] = method;
+    }
+	return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readAttributes(FILE *fp, AttributeInfo ***attributes, ClassFile *class, U2 count) {
     if (count == 0) {
         *attributes = NULL;
         return OK;
@@ -303,25 +718,93 @@ static int readattribute(FILE *fp, AttributeInfo ***attributes, ClassFile *class
                 TRY(readu(fp, &attr->info.code.max_stack, 2));
                 TRY(readu(fp, &attr->info.code.max_locals, 2));
                 TRY(readu(fp, &attr->info.code.code_length, 4));
-                TRY(readcode(fp, &attr->info.code.code, class, attr->info.code.code_length));
+                TRY(readCode(fp, &attr->info.code.code, class, attr->info.code.code_length));
+                TRY(readu(fp, &attr->info.code.exception_table_length, 2));
+                TRY(readExceptions(fp, &attr->info.code.exception_table, attr->info.code.exception_table_length));
+                TRY(readu(fp, &attr->info.code.attribute_count, 2));
+                TRY(readAttributes(fp, &attr->info.code.attributes, class, attr->info.code.attribute_count));
                 break;
             case ATT_StatckMapTable:
+                TRY(readu(fp, &attr->info.statckmaptable.attribute_length, 4));
+                TRY(readu(fp, &attr->info.statckmaptable.number_of_entries, 2));
+                TRY(readStackMapFrame(fp, &attr->info.statckmaptable.entries, attr->info.statckmaptable.number_of_entries));
+                break;
             case ATT_Exceptions:
+                TRY(readu(fp, &attr->info.exceptions.attribute_length, 4));
+                TRY(readu(fp, &attr->info.exceptions.number_of_exceptions, 2));
+                TRY(readIndex(fp, &attr->info.exceptions.exception_index_table, attr->info.exceptions.number_of_exceptions));
+                break;
             case ATT_InnerClass:
+                TRY(readu(fp, &attr->info.innerclass.attribute_length, 4));
+                TRY(readu(fp, &attr->info.innerclass.number_of_classes, 2));
+                TRY(readInnerClasses(fp, &attr->info.innerclass.classes, attr->info.innerclass.number_of_classes));
+                break;
             case ATT_EnclosingMethod:
+                TRY(readu(fp, &attr->info.enclosingmethod.attribute_length, 4));
+                TRY(readu(fp, &attr->info.enclosingmethod.class_index, 2));
+                TRY(readu(fp, &attr->info.enclosingmethod.method_index, 2));
+                break;
             case ATT_Synthetic:
+                TRY(readu(fp, &attr->info.synthetic.attribute_length, 4));
+                break;
             case ATT_Signature:
+                TRY(readu(fp, &attr->info.sinature.attribute_length, 4));
+                TRY(readu(fp, &attr->info.sinature.signature_index, 2));
+                break;
             case ATT_SourceFile:
+                TRY(readu(fp, &attr->info.sourcefile.attribute_length, 4));
+                TRY(readu(fp, &attr->info.sourcefile.source_index, 2));
+                break;
             case ATT_SourceDebugExtension:
+                TRY(readu(fp, &attr->info.sourcedebugextention.attribute_length, 4));
+                TRY(readBytes(fp, &attr->info.sourcedebugextention.debug_extension, attr->info.sourcedebugextention.attribute_length));
+                break;
             case ATT_LineNumberTable:
+                TRY(readu(fp, &attr->info.linenumbertable.attribute_length, 4));
+                TRY(readu(fp, &attr->info.linenumbertable.line_number_table_length, 2));
+                TRY(readLineNumber(fp, &attr->info.linenumbertable.line_number_table, attr->info.linenumbertable.line_number_table_length));
+                break;
+            case ATT_LocalVariableTable:
+                TRY(readu(fp, &attr->info.localvariabletable.attribute_length, 4));
+                TRY(readu(fp, &attr->info.localvariabletable.local_variable_table_length, 2));
+                TRY(readLocalVariable(fp, &attr->info.localvariabletable.local_variable_table, attr->info.localvariabletable.local_variable_table_length));
+                break;
             case ATT_LocalVariableTypeTable:
+                TRY(readu(fp, &attr->info.localvaraibletypetable.attribute_length, 4));
+                TRY(readu(fp, &attr->info.localvaraibletypetable.local_variable_type_table_length, 2));
+                TRY(readLocalVariableType(fp, &attr->info.localvaraibletypetable.local_variable_type_table, attr->info.localvaraibletypetable.local_variable_type_table_length));
+                break;
             case ATT_Deprecated:
+                TRY(readu(fp, &attr->info.deprecated.attribute_length, 4));
+                break;
             case ATT_RuntimeVisibleAnnotations:
+                TRY(readu(fp, &attr->info.runtimevisibleannotations.attribute_length, 4));
+                TRY(readu(fp, &attr->info.runtimevisibleannotations.num_annotations, 2));
+                TRY(readAnnotations(fp, &attr->info.runtimevisibleannotations.annotations, attr->info.runtimevisibleannotations.num_annotations));
+                break;
             case ATT_RuntimeInVisibleAnnotations:
+                TRY(readu(fp, &attr->info.runtimeinvisibleannotations.attribute_length, 4));
+                TRY(readu(fp, &attr->info.runtimeinvisibleannotations.num_annotations, 2));
+                TRY(readAnnotations(fp, &attr->info.runtimeinvisibleannotations.annotations, attr->info.runtimeinvisibleannotations.num_annotations));
+                break;
             case ATT_RuntimeVisibleParameterAnnotations:
+                TRY(readu(fp, &attr->info.runtimevisibleparameterannotations.attribute_length, 4));
+                TRY(readu(fp, &attr->info.runtimevisibleparameterannotations.num_parameters, 1));
+                TRY(readParameterAnnotations(fp, &attr->info.runtimevisibleparameterannotations.parameter_annotations, attr->info.runtimevisibleparameterannotations.num_parameters));
+                break;
             case ATT_RuntimeInVisibleParameterAnnotations:
+                TRY(readu(fp, &attr->info.runtimeinvisibleparameterannotations.attribute_length, 4));
+                TRY(readu(fp, &attr->info.runtimeinvisibleparameterannotations.num_parameters, 1));
+                TRY(readParameterAnnotations(fp, &attr->info.runtimeinvisibleparameterannotations.parameter_annotations, attr->info.runtimeinvisibleparameterannotations.num_parameters));
+                break;
             case ATT_AnnotationDefault:
+                TRY(readu(fp, &attr->info.annotationdefault.attribute_length, 4));
+                TRY(readElementValue(fp, &attr->info.annotationdefault.default_value));
+                break;
             case ATT_BootstrapMethods:
+                TRY(readu(fp, &attr->info.bootstrapmethods.attribute_length, 4));
+                TRY(readu(fp, &attr->info.bootstrapmethods.num_bootstrap_methods, 2));
+                TRY(readBootstrapMethods(fp, &attr->info.bootstrapmethods.bootstrap_methods, attr->info.bootstrapmethods.num_bootstrap_methods));
                 break;
         }
         (*attributes)[i] = attr;
@@ -333,7 +816,8 @@ error:
 	return ERR;
 }
 
-static int readfield(FILE *fp, FieldInfo ***fields, ClassFile *class, U2 count) {
+
+static int readFields(FILE *fp, FieldInfo ***fields, ClassFile *class, U2 count) {
     if (count == 0) {
         *fields = NULL;
         return OK;
@@ -341,6 +825,7 @@ static int readfield(FILE *fp, FieldInfo ***fields, ClassFile *class, U2 count) 
     
     *fields = salloc(sizeof(FieldInfo *) * count);
     if (*fields == NULL) goto oom;
+
     for (U2 i = 0; i < count; i++) {
         FieldInfo *field = salloc(sizeof(FieldInfo));
         if (field == NULL) goto oom;
@@ -348,8 +833,35 @@ static int readfield(FILE *fp, FieldInfo ***fields, ClassFile *class, U2 count) 
         TRY(readu(fp, &field->name_index, 2));
         TRY(readu(fp, &field->descriptor_index, 2));
         TRY(readu(fp, &field->attribute_count, 2));
-        TRY(readattribute(fp, &field->attributes, class, field->attribute_count));
+        TRY(readAttributes(fp, &field->attributes, class, field->attribute_count));
         (*fields)[i] = field;
+    }
+    return OK;
+oom:
+    seterror("Out of memory");
+error:
+	return ERR;
+}
+
+static int readMethods(FILE *fp, MethodInfo ***p, ClassFile *class, U2 count) {
+    if (count == 0) {
+        *p = NULL;
+        return OK;
+    }
+    
+    *p = salloc(sizeof(MethodInfo *) * count);
+    if (*p == NULL) goto oom;
+
+    for (U2 i = 0; i < count; i++) {
+        MethodInfo *method = salloc(sizeof(MethodInfo));
+        if (method == NULL) goto oom;
+        TRY(readu(fp, &method->access_flags, 2));
+        TRY(readu(fp, &method->name_index, 2));
+        TRY(readu(fp, &method->descriptor_index, 2));
+        TRY(readu(fp, &method->attribute_count, 2));
+        TRY(readu(fp, &method->attribute_count, 2));
+        TRY(readAttributes(fp, &method->attributes, class, method->attribute_count));
+        (*p)[i] = method;
     }
     return OK;
 oom:
@@ -377,14 +889,18 @@ static int readClass(FILE *fp, ClassFile *class) {
     TRY(readu(fp, &class->major_version, 2));
     TRY(readu(fp, &class->minor_version, 2));
     TRY(readu(fp, &class->constant_pool_count, 2));
-    TRY(readcp(fp, &class->constant_pool, class->constant_pool_count));
+    TRY(readCP(fp, &class->constant_pool, class->constant_pool_count));
 	TRY(readu(fp, &class->access_flags, 2));
 	TRY(readu(fp, &class->this_class, 2));
 	TRY(readu(fp, &class->super_class, 2));
 	TRY(readu(fp, &class->interfaces_count, 2));
-	TRY(readinterface(fp, &class->interfaces, class->interfaces_count));
+	TRY(readInterfaces(fp, &class->interfaces, class->interfaces_count));
 	TRY(readu(fp, &class->fields_count, 2));
-	TRY(readfield(fp, &class->fields, class, class->fields_count));
+	TRY(readFields(fp, &class->fields, class, class->fields_count));
+	TRY(readu(fp, &class->method_count, 2));
+	TRY(readMethods(fp, &class->methods, class, class->method_count));
+	TRY(readu(fp, &class->attribute_count, 2));
+	TRY(readAttributes(fp, &class->attributes, class, class->attribute_count));
     return OK;
 error:
     return ERR;
@@ -438,6 +954,19 @@ static AttributeTag getAttrTag(char *attr_name) {
             return tags[i].t;
 	return ATT_CUSTOM;
 }
+
+/* Get FrameTag by frame type value. */
+static FrameTag getFramTag(U1 val) {
+    if (0 <= val && val <= 63) return SAME_FRAME;
+    else if (64 <= val && val <= 127) return SAME_LOCALS_1_STACK_ITEM_FRAME;
+    else if (247 == val) return SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED;
+    else if (248 <= val && val <= 250) return CHOP_FRAME;
+    else if (251 == val) return SAME_FRAME_EXTENDED;
+    else if (252 <= val && val <= 254) return APPEND_FRAME;
+    else if (255 == val) return FULL_FRAME;
+    else return UNKNOWN_FRAME;
+}
+
 
 /* Get file 
  * Return NULL if not found. */

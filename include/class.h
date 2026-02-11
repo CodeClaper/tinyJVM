@@ -65,6 +65,7 @@ typedef enum AttributeTag {
     ATT_SourceFile,
     ATT_SourceDebugExtension,
     ATT_LineNumberTable,
+    ATT_LocalVariableTable,
     ATT_LocalVariableTypeTable,
     ATT_Deprecated,
     ATT_RuntimeVisibleAnnotations,
@@ -76,6 +77,7 @@ typedef enum AttributeTag {
 } AttributeTag;
 
 typedef enum FrameTag {
+    UNKNOWN_FRAME = -1,
     SAME_FRAME,
     SAME_LOCALS_1_STACK_ITEM_FRAME,
     SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED,
@@ -89,8 +91,8 @@ typedef enum VerificationTag {
     ITEM_Top                    = 0,
     ITEM_Integer                = 1,
     ITEM_Float                  = 2,
-    ITEN_Long                   = 4,
-    ITEN_Double                 = 3,
+    ITEM_Long                   = 4,
+    ITEM_Double                 = 3,
     ITEM_Null                   = 5,
     ITEM_UninitializedThis      = 6,
     ITEM_Object                 = 7,
@@ -198,6 +200,24 @@ typedef struct ConstantPoolInfo {
     } info;
 } ConstantPoolInfo;
 
+typedef struct ElementValue {
+    U1                      tag;
+    union {
+        U2                  const_value_index;      // For tag B, C, D, F, I, J, S, Z,s
+        struct {
+            U2              type_name_index;
+            U2              consta_name_index;
+        } enum_const_value;                         // For tag e
+        U2                  class_info_index;       // For tag c
+        struct Annotation  *annotation_value;       // For tag @
+        struct {
+            U2                  num_values;
+            struct ElementValue **values;
+        } array_value;                              // For tag [
+    } value;
+} ElementValue;
+
+
 typedef struct ConstantValue_attribute {
     U4                      attribute_length;
     U2                      constantvalue_index;
@@ -267,13 +287,13 @@ typedef struct LineNumberTable_attribute {
 typedef struct LocalVariableTable_attribute {
     U4                      attribute_length;
     U2                      local_variable_table_length;
-    struct LocalVariable    *local_variable_table;
+    struct LocalVariable    **local_variable_table;
 } LocalVariableTable_attribute;
 
 typedef struct LocalVariableTypeTable_attribute {
     U4                          attribute_length;
     U2                          local_variable_type_table_length;
-    struct LocalVariableType    *local_variable_type_table;
+    struct LocalVariableType    **local_variable_type_table;
 } LocalVariableTypeTable_attribute;
 
 typedef struct Deprecated_attribute {
@@ -283,40 +303,36 @@ typedef struct Deprecated_attribute {
 typedef struct RuntimeVisibleAnnotations_attribute {
     U4                          attribute_length;
     U2                          num_annotations;
-    struct Annotation           *annotations;
+    struct Annotation           **annotations;
 } RuntimeVisibleAnnotations_attribute;
 
 typedef struct RuntimeInVisibleAnnotations_attribute {
     U4                          attribute_length;
     U2                          num_annotations;
-    struct Annotation           *annotations;
+    struct Annotation           **annotations;
 } RuntimeInVisibleAnnotations_attribute;
 
 typedef struct RuntimeVisibleParameterAnnotations_attribute {
     U4                          attribute_length;
     U1                          num_parameters;
-    struct ParameterAnnotation  *parameter_annotations;
+    struct ParameterAnnotation  **parameter_annotations;
 } RuntimeVisibleParameterAnnotations_attribute;
 
 typedef struct RuntimeInVisibleParameterAnnotations_attribute {
     U4                          attribute_length;
     U1                          num_parameters;
-    struct ParameterAnnotation  *parameter_annotations;
+    struct ParameterAnnotation  **parameter_annotations;
 } RuntimeInVisibleParameterAnnotations_attribute;
 
 typedef struct AnnotationDefault_attribute {
     U4                          attribute_length;
-    struct ElementValue         *default_value;
+    struct ElementValue         default_value;
 } AnnotationDefault_attribute;
 
 typedef struct BootstrapMethods_attribute {
     U4                          attribute_length;
     U2                          num_bootstrap_methods;
-    struct {
-        U2          bootstrap_method_ref;
-        U2          num_bootstrap_arguments;
-        U2          *bootstrap_arguments;
-    } bootstrap_methods;
+    struct BootstrapMethod      **bootstrap_methods;
 } BootstrapMethods_attribute;
 
 typedef struct AttributeInfo {
@@ -389,7 +405,7 @@ typedef struct Exception {
     U2              start_pc;
     U2              end_pc;
     U2              handler_pc;
-    U2              catch_pc;
+    U2              catch_type;
 } Exception;
 
 typedef struct InnerClass {
@@ -421,46 +437,39 @@ typedef struct LocalVariableType {
 } LocalVariableType;
 
 typedef struct Annotation {
-    U2              type_index;
-    U2              num_element_value_pairs;
-    struct {
-        U2                      element_name_index;
-        struct ElementValue     *value;
-    } *pairs;
+    U2                      type_index;
+    U2                      num_element_value_pairs;
+    struct ElementPair      **pairs;
 } Annotation;
 
-typedef struct ElementValue {
-    U1              tag;
-    union {
-        U2          const_value_index;      // For tag B, C, D, F, I, J, S, Z,s
-        struct {
-            U2          type_name_index;
-            U2          consta_name_index;
-        } enum_const_value;                 // For tag e
-        U2          class_info_index;       // For tag c
-        Annotation  *annotation_value;      // For tag @
-        struct {
-            U2                  num_values;
-            struct ElementValue **values;
-        } array_value;                      // For tag [
-    } value;
-} ElementValue;
+typedef struct ElementPair {
+    U2                      element_name_index;
+    struct ElementValue     value;
+} ElementPair;
 
 typedef struct ParameterAnnotation {
-    U2              num_annotations;
-    Annotation      *annotations;
+    U2                      num_annotations;
+    Annotation              **annotations;
 } ParameterAnnotation;
 
+typedef struct BootstrapMethod {
+    U2                      bootstrap_method_ref;
+    U2                      num_bootstrap_arguments;
+    U2                      *bootstrap_arguments;
+} BootstrapMethod;
+
 typedef struct VerificationTypeInfo {
-    VerificationTag tag;
-    U2              info;   // cpool_index when tag is ITEM_Object,
-                            // offset when tag is ITEM_Uninitialized.
+    U1                      tag;                    // See VerificationTag
+    U2                      cpool_index_or_offset;  //  cpool_index when tag is ITEM_Object, offset when tag is ITEM_Uninitialized.
 } VerificationTypeInfo;
 
 typedef struct StackMapFrame {
-    FrameTag                frame_type;
+    U1                      frame_type;  
     U2                      offset_delta;
+    U2                      num_stack;
     VerificationTypeInfo    **statck;
+    U2                      num_local;
+    VerificationTypeInfo    **locals;
 } StackMapFrame;
 
 
