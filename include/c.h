@@ -4,13 +4,25 @@
 #define OK              0
 #define MAGIC           0xCAFEBABE
 
+#ifdef DEBUG
+#define TRY(expr) \
+	do { \
+		if ((expr) == -1) { \
+            fprintf(stderr,                         \
+              "%s:%d: %lld: " #expr "\n",           \
+              __FILE__, __LINE__, (long long)(expr) \
+            );                                      \
+			goto error; \
+		} \
+	} while(0)
+#else
 #define TRY(expr) \
 	do { \
 		if ((expr) == -1) { \
 			goto error; \
 		} \
 	} while(0)
-
+#endif
 #define Assert(condition) assert(condition)
 #define AssertFalse(condition) assert(!(condition))
 

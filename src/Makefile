@@ -1,5 +1,9 @@
 CC = cc
-CFLAGS = -g -Wall -Wextra -std=c11
+ifdef DEBUG
+	CFLAGS = -g -Wall -Wextra -std=c11 -D DEBUG
+else
+	CFLAGS = -g -Wall -Wextra -std=c11
+endif
 LDFLAGS = -lpthread -lm
 includedir = ../include
 headers = $(shell find $(includedir) -name "*.h")
