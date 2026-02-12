@@ -479,6 +479,7 @@ char *classGetUtf8(ClassFile *class, U2 index);
 char *classGetClassName(ClassFile *class, U2 index);
 AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag);
 bool classIsTopClass(ClassFile *class);
+char *classGetConstantTagName(U1 tag);
 
 #endif
 

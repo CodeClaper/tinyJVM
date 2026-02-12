@@ -1,6 +1,6 @@
 CC = cc
 ifdef DEBUG
-	CFLAGS = -g -Wall -Wextra -std=c11 -D DEBUG
+	CFLAGS = -g -Wall -Wextra -gdwarf-2 -std=c11 -D DEBUG
 else
 	CFLAGS = -g -Wall -Wextra -std=c11
 endif

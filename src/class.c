@@ -899,6 +899,31 @@ bool classIsTopClass(ClassFile *class) {
     return strcmp(classGetClassName(class, class->super_class), "java/lang/Object") == 0;
 }
 
+/* Get Constant Tag name. */
+char *classGetConstantTagName(U1 tag) {
+    char *cptags[] = {
+        [CONSTANT_Untagged] = "",
+        [CONSTANT_Utf8] = "Utf8",
+        [CONSTANT_Integer] = "Integer",
+        [CONSTANT_Float] = "Float",
+        [CONSTANT_Long] = "Long",
+        [CONSTANT_Double] = "Double",
+        [CONSTANT_Class] = "Class",
+        [CONSTANT_String] = "String",
+        [CONSTANT_Fieldref] = "Fieldref",
+        [CONSTANT_Methodref] = "Methodref",
+        [CONSTANT_InterfaceMethodref] = "InterfaceMethodref",
+        [CONSTANT_NameAndType] = "NameAndType",
+        [CONSTANT_MethodHandle] = "MethodHandle",
+        [CONSTANT_MethodType] = "MethodType",
+        [CONSTANT_Dynamic] = "Dynamic",
+        [CONSTANT_InvokeDyanmic] = "InvokeDyanmic",
+        [CONSTANT_Module] = "Module",
+        [CONSTANT_Package] = "Package"
+    };
+    return cptags[tag];
+}
+
 /* Read class from file. */
 static int readClass(FILE *fp, ClassFile *class) {
     TRY(readu(fp, &class->magic, 4));
