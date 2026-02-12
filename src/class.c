@@ -10,7 +10,6 @@
 
 static FrameTag getFramTag(U1 val);
 static AttributeTag getAttrTag(char *attr_name);
-static char *classGetUtf8(ClassFile *class, U2 index);
 static int readAnnotation(FILE *fp, Annotation **annotation);
 static int readElementValues(FILE *fp, ElementValue ***p, U2 count);
 
@@ -871,7 +870,7 @@ error:
 }
 
 /* Get class utf-8 string. */
-static char *classGetUtf8(ClassFile *class, U2 index) {
+char *classGetUtf8(ClassFile *class, U2 index) {
     if (index == 0) {
         seterror("The index of constant pool can't be zero. ");
         exit(EXIT_FAILURE);
@@ -879,15 +878,32 @@ static char *classGetUtf8(ClassFile *class, U2 index) {
     return class->constant_pool[index]->info.utf8_info.bytes;
 }
 
-static char *classGetClassName(ClassFile *class, U2 index) {
+/* Get class name. */
+char *classGetClassName(ClassFile *class, U2 index) {
     return classGetUtf8(class, class->constant_pool[index]->info.class_info.name_index);
+}
+
+/* Get class attr by tag. 
+ * Return NULL if not found. */
+AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag) {
+    for (U1 i = 0; i < class->attribute_count; i++) {
+        if (class->attributes[i]->tag == tag)
+            return class->attributes[i];
+    }
+    return NULL;
+}
+
+/* Is class top. 
+ * Top means class directly extends Object. */
+bool classIsTopClass(ClassFile *class) {
+    return strcmp(classGetClassName(class, class->super_class), "java/lang/Object") == 0;
 }
 
 /* Read class from file. */
 static int readClass(FILE *fp, ClassFile *class) {
     TRY(readu(fp, &class->magic, 4));
-    TRY(readu(fp, &class->major_version, 2));
     TRY(readu(fp, &class->minor_version, 2));
+    TRY(readu(fp, &class->major_version, 2));
     TRY(readu(fp, &class->constant_pool_count, 2));
     TRY(readCP(fp, &class->constant_pool, class->constant_pool_count));
 	TRY(readu(fp, &class->access_flags, 2));

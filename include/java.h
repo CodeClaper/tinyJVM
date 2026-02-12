@@ -1,6 +1,5 @@
 #ifndef __JAVA_H__
 #define __JAVA_H__
-#include <stdbool.h>
 #include "class.h"
 
 #define MAX_ERR_SIZE 256
@@ -11,7 +10,7 @@ typedef struct JavaStates {
     char            error[MAX_ERR_SIZE];
     char            *class_name;
     ClassFile       *classes;
-    bool            verbose;            
+    int             verbose;            
 } JavaStates;
 
 extern struct JavaStates javaStates; /* server global state */

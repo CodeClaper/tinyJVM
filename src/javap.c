@@ -6,6 +6,7 @@
 #include "c.h"
 #include "mmr.h"
 #include "util.h"
+#include "class.h"
 
 struct JavaStates javaStates;
 
@@ -33,6 +34,8 @@ static void init(int argc, char *argv[]) {
         if (strcmp(argv[i], "-cp") == 0) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
+        } else if (strcmp(argv[i], "-verbose") == 0) {
+            javaStates.verbose = 1;
         } else {
             javaStates.class_name = sstrdup(argv[i]);
             if (javaStates.class_name == NULL) goto oom;
@@ -45,8 +48,89 @@ oom:
     exit(EXIT_FAILURE);
 }
 
-static void javap() {
+static void printClassAccessFlag(U2 flag) {
+    struct {
+        U2 flag;
+        char *s;
+    } flags[] = {
+        { 0x0001,    "ACC_PUBLIC" },
+        { 0x0010,    "ACC_FINAL" },
+        { 0x0020,    "ACC_SUPER" },
+        { 0x0200,    "ACC_INTERFACE" },
+        { 0x0400,    "ACC_SYNTHETIC" },
+        { 0x1000,    "ACC_ANNOTATION" },
+        { 0x2000,    "ACC_EUM" }
+    };
+    int p = 0;
+    
+    printf("flags: ");
+    for (U2 i = 0; LEN(flags); i++) {
+        if (flag & flags[i].flag) {
+            if (p) printf(", ");
+            printf("%s", flags[i].s);
+            p = 1;
+        }
+    }
+    printf("\n");
+}
 
+static void printClass(ClassFile *class, U2 class_index) {
+    char *s = classGetClassName(class, class_index);
+    while (*s) {
+        if (*s == '/') putchar('.');
+        else putchar(*s);
+        s++;
+    } 
+}
+
+static void printMeta(ClassFile *class) {
+	printf("  minor version: %u\n", class->minor_version);
+	printf("  major version: %u\n", class->major_version);
+	printf("  Java version: %u.0\n", class->major_version - 44);
+	printf("  ");
+    printClassAccessFlag(class->access_flags);
+}
+
+static void printSource(ClassFile *class) {
+    AttributeInfo *attr = classGetAttr(class, ATT_SourceFile);
+    if (attr == NULL) return;
+	printf("Compiled from \"%s\"\n", classGetUtf8(class, attr->info.sourcefile.source_index));
+}
+
+static void printHeader(ClassFile *class) {
+    if (class->access_flags & ACC_CLASS_PUBLIC) printf("public ");
+    if (class->access_flags & ACC_CLASS_INTERFACE) printf("interface ");
+    else if (class->access_flags & ACC_CLASS_ENUM) printf("enum ");
+    else {
+        if (class->access_flags & ACC_CLASS_ABSTRACT) printf("abstract ");
+        else if (class->access_flags & ACC_CLASS_FINAL) printf("final ");
+        printf("class ");
+    }
+    printClass(class, class->this_class);
+    if (class->super_class && !classIsTopClass(class)) {
+        printf(" extends ");
+        printClass(class, class->super_class);
+    }
+    if (class->interfaces_count > 0) {
+        printf(" implements ");
+        for (U2 i = 0; i < class->interfaces_count; i++) {
+            if (i > 0) printf(", ");
+            printClass(class, class->interfaces[i]);
+        }
+    }
+}
+
+static void javap() {
+    ClassFile *class = loadClass(javaStates.class_name);
+    if (class == NULL) exit(EXIT_FAILURE);
+    printSource(class);
+    printHeader(class);
+    if (javaStates.verbose) {
+        printf("\n");
+        printMeta(class);
+    } else {
+        printf(" {\n");
+    }
 }
 
 int main(int argc, char *argv[]) {

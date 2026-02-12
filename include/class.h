@@ -1,10 +1,11 @@
+#include <stdbool.h>
 #include "c.h"
 
 #ifndef __CLASS_H__
 #define __CLASS_H__
 
 /* ==========================================
- * ClassFile Access Flags.
+ * Class Access Flags.
  * ========================================== */
 #define ACC_CLASS_PUBLIC      0x0001  
 #define ACC_CLASS_FINAL       0x0010  
@@ -474,6 +475,10 @@ typedef struct StackMapFrame {
 
 
 ClassFile *loadClass(char *class_name);
+char *classGetUtf8(ClassFile *class, U2 index);
+char *classGetClassName(ClassFile *class, U2 index);
+AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag);
+bool classIsTopClass(ClassFile *class);
 
 #endif
 
