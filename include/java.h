@@ -10,8 +10,10 @@ typedef struct JavaStates {
     char            error[MAX_ERR_SIZE];
     char            *class_name;
     ClassFile       *classes;
-    int             verbose;            
+    int             verbose;                /* Javap in verbose mode. */
+    int             private;                /* Javap shows all calsses and numbers. */
 } JavaStates;
 
 extern struct JavaStates javaStates; /* server global state */
+
 #endif

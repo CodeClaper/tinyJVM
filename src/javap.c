@@ -14,44 +14,6 @@
 
 struct JavaStates javaStates;
 
-static void usage() {
-	fprintf(stderr, "Usage: javap <options> <classes>\n");
-    fprintf(stderr, "Where possible options include:\n" );
-	exit(EXIT_FAILURE);
-}
-
-static void addClassPath(char *classpath) {
-    javaStates.class_path = srealloc(javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1));
-    if (javaStates.class_path == NULL) goto oom;
-    javaStates.class_path[javaStates.num_class_path] = sstrdup(classpath);
-    if (javaStates.class_path[javaStates.num_class_path] == NULL) goto oom;
-    javaStates.num_class_path++;
-    return;
-oom:
-    seterror("Out of memory");
-    exit(EXIT_FAILURE);
-}
-
-static void init(int argc, char *argv[]) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-cp") == 0) {
-            if (++i > argc) usage();
-            else addClassPath(argv[i]);
-        } else if (strcmp(argv[i], "-verbose") == 0) {
-            javaStates.verbose = 1;
-        } else {
-            javaStates.class_name = sstrdup(argv[i]);
-            if (javaStates.class_name == NULL) goto oom;
-        }
-    }
-    if (javaStates.num_class_path == 0) addClassPath(".");
-    return;
-oom:
-    seterror("Out of memory");
-    exit(EXIT_FAILURE);
-}
-
 /* Quote method name if is it <init>. */
 static char *quoteName(char *s) {
     if (strcmp(s, "<init>") == 0) return "\"<init>\"";
@@ -67,9 +29,10 @@ static void printClassAccessFlag(U2 flag) {
         { 0x0010,    "ACC_FINAL" },
         { 0x0020,    "ACC_SUPER" },
         { 0x0200,    "ACC_INTERFACE" },
-        { 0x0400,    "ACC_SYNTHETIC" },
-        { 0x1000,    "ACC_ANNOTATION" },
-        { 0x2000,    "ACC_EUM" }
+        { 0x0400,    "ACC_ABSTRACT" },
+        { 0x1000,    "ACC_SYNTHETIC" },
+        { 0x2000,    "ACC_ANNOTATION" },
+        { 0x4000,    "ACC_EUM" }
     };
     int p = 0;
     
@@ -83,6 +46,34 @@ static void printClassAccessFlag(U2 flag) {
     }
     printf("\n");
 }
+
+static void printFieldAccessFlag(U2 flag) {
+    struct {
+        U2 flag;
+        char *s;
+    } flags[] = {
+        { 0x0001,    "ACC_PUBLIC" },
+        { 0x0010,    "ACC_FINAL" },
+        { 0x0020,    "ACC_SUPER" },
+        { 0x0200,    "ACC_INTERFACE" },
+        { 0x0400,    "ACC_ABSTRACT" },
+        { 0x1000,    "ACC_SYNTHETIC" },
+        { 0x2000,    "ACC_ANNOTATION" },
+        { 0x4000,    "ACC_EUM" }
+    };
+    int p = 0;
+    
+    printf("  flags: ");
+    for (U2 i = 0; i < LEN(flags); i++) {
+        if (flag & flags[i].flag) {
+            if (p) printf(", ");
+            printf("%s", flags[i].s);
+            p = 1;
+        }
+    }
+    printf("\n");
+}
+
 
 static void printClass(ClassFile *class, U2 class_index) {
     char *s = classGetClassName(class, class_index);
@@ -182,17 +173,69 @@ static void printCP(ClassFile *class) {
                 printf("// %s:%s", quoteName(classGetNameAndTypeForName(class, i)), classGetNameAndTypeForType(class, i));
                 break;
             case CONSTANT_MethodHandle:
+                printf("%u:#%u", cp[i]->info.methodhandle_info.reference_kind, cp[i]->info.methodhandle_info.reference_index);
                 break;
             case CONSTANT_MethodType:
                 printf("#%u", cp[i]->info.methodtype_info.descriptor_index);
                 break;
             case CONSTANT_Dynamic:
+                break;
             case CONSTANT_InvokeDyanmic:
-            case CONSTANT_Module:             
+                printf("%u:#%u", cp[i]->info.invokedynamic_info.bootstrap_method_attr_index, cp[i]->info.invokedynamic_info.name_type_index);
+                break;
+            case CONSTANT_Module:       
             case CONSTANT_Package:
                 break;
         }
         printf("\n");
+    }
+}
+
+static void printFieldType(char *type) {
+    char *s = type + 1;
+    switch (*type) {
+        case 'B': printf("bytes"); break;
+        case 'C': printf("char"); break;
+        case 'D': printf("double"); break;
+        case 'F': printf("float"); break;
+        case 'I': printf("int"); break;
+        case 'J': printf("long"); break;
+        case 'S': printf("short"); break;
+        case 'V': printf("void"); break;
+        case 'Z': printf("boolean"); break;
+        case 'L': {
+            while (*s && *s != ';') {
+                if (*s == '/') putchar('.');
+                else putchar(*s);
+                s++;
+            }
+            if (*s == ';') s++;
+            break;
+        }
+        case '[': {
+            printFieldType(s);
+            printf("[]");
+            break;
+        }
+    }
+}
+
+static void printField(ClassFile *class) {
+    for (U2 i = 0; i < class->fields_count; i++) {
+        FieldInfo *field = class->fields[i];
+        if (!javaStates.private && field->access_flags & ACC_FIELD_PRIVATE) return;
+        if (field->access_flags & ACC_FIELD_PRIVATE) printf("  private ");
+        else if (field->access_flags & ACC_FIELD_PROTECTED) printf("  protected ");
+        else if (field->access_flags & ACC_FIELD_PUBLIC) printf("  public ");
+        if (field->access_flags & ACC_FIELD_STATIC) printf("static ");
+        if (field->access_flags & ACC_FIELD_FINAL) printf("final ");
+        if (field->access_flags & ACC_FIELD_TRANSIENT) printf("transient ");
+        if (field->access_flags & ACC_FIELD_VOLATILE) printf("volatile ");
+        printFieldType(classGetUtf8(class, field->descriptor_index));
+        printf(" %s", classGetUtf8(class, field->name_index));
+        printf(";\n");
+        printf("   descriptor:%s\n", classGetUtf8(class, field->descriptor_index));
+        printf("   flags:%s\n", classGetUtf8(class, field->descriptor_index));
     }
 }
 
@@ -225,18 +268,61 @@ static void printHeader(ClassFile *class) {
     }
 }
 
+static void usage() {
+	fprintf(stderr, "Usage: javap <options> <classes>\n");
+    fprintf(stderr, "Where possible options include:\n" );
+	exit(EXIT_FAILURE);
+}
+
+static void addClassPath(char *classpath) {
+    javaStates.class_path = srealloc(javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1));
+    if (javaStates.class_path == NULL) goto oom;
+    javaStates.class_path[javaStates.num_class_path] = sstrdup(classpath);
+    if (javaStates.class_path[javaStates.num_class_path] == NULL) goto oom;
+    javaStates.num_class_path++;
+    return;
+oom:
+    seterror("Out of memory");
+    exit(EXIT_FAILURE);
+}
+
+static void init(int argc, char *argv[]) {
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-cp") == 0) {
+            if (++i > argc) usage();
+            else addClassPath(argv[i]);
+        } 
+        else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) javaStates.verbose = 1;
+        else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javaStates.private = 1;
+        else {
+            javaStates.class_name = sstrdup(argv[i]);
+            if (javaStates.class_name == NULL) goto oom;
+        }
+    }
+    if (javaStates.num_class_path == 0) addClassPath(".");
+    return;
+oom:
+    seterror("Out of memory");
+    exit(EXIT_FAILURE);
+}
+
+
 static void javap() {
     ClassFile *class = loadClass(javaStates.class_name);
     if (class == NULL) exit(EXIT_FAILURE);
+
     printSource(class);
     printHeader(class);
     if (javaStates.verbose) {
         printf("\n");
         printMeta(class);
         printCP(class);
+        printf("{\n");
     } else {
         printf(" {\n");
     }
+    printField(class);
 }
 
 int main(int argc, char *argv[]) {

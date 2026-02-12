@@ -1023,7 +1023,6 @@ static FrameTag getFramTag(U1 val) {
     else return UNKNOWN_FRAME;
 }
 
-
 /* Get file 
  * Return NULL if not found. */
 static FILE *getFile(char *class_name) {
