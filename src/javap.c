@@ -108,9 +108,11 @@ static void printCP(ClassFile *class) {
                 break;
             case CONSTANT_Long:
                 printf("%ld", castLong(cp[i]->info.long_info.high_bytes, cp[i]->info.long_info.low_bytes));
+                i++;
                 break;
             case CONSTANT_Double:
                 printf("%gd", castDouble(cp[i]->info.double_info.high_bytes, cp[i]->info.long_info.low_bytes));
+                i++;
                 break;
             case CONSTANT_Class:
                 break;

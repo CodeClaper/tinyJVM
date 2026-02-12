@@ -121,10 +121,12 @@ static int readCP(FILE *fp, ConstantPoolInfo ***cp, U2 count) {
             case CONSTANT_Long:
                 TRY(readu(fp, &current->info.long_info.high_bytes, 4));
                 TRY(readu(fp, &current->info.long_info.low_bytes, 4));
+                i++;
                 break;
             case CONSTANT_Double:
                 TRY(readu(fp, &current->info.long_info.high_bytes, 4));
                 TRY(readu(fp, &current->info.long_info.low_bytes, 4));
+                i++;
                 break;
             case CONSTANT_Class:
                 TRY(readu(fp, &current->info.class_info.name_index, 2));
