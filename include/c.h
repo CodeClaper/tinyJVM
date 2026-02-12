@@ -4,6 +4,8 @@
 #define OK              0
 #define MAGIC           0xCAFEBABE
 
+#define LEN(x) (sizeof(x) / sizeof(*(x)))
+
 #ifdef DEBUG
 #define TRY(expr) \
 	do { \
