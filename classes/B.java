@@ -1,4 +1,4 @@
-public class B extends A {
+public class B extends A  {
     private int a;
     private float b;
     private double c;
@@ -15,5 +15,9 @@ public class B extends A {
     @Override
     public void sayHello() {
         System.out.println("Say Hello from: " + this.name);
+    }
+
+    public void run(Runnable r) {
+        r.run();
     }
 }
