@@ -1,4 +1,4 @@
-public class A {
+public class A implements I {
     private String name;
     
     public A() {

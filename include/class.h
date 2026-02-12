@@ -477,6 +477,8 @@ typedef struct StackMapFrame {
 ClassFile *loadClass(char *class_name);
 char *classGetUtf8(ClassFile *class, U2 index);
 char *classGetClassName(ClassFile *class, U2 index);
+char *classGetNameAndTypeForName(ClassFile *class, U2 index);
+char *classGetNameAndTypeForType(ClassFile *class, U2 index);
 AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag);
 bool classIsTopClass(ClassFile *class);
 char *classGetConstantTagName(U1 tag);

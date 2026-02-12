@@ -885,6 +885,16 @@ char *classGetClassName(ClassFile *class, U2 index) {
     return classGetUtf8(class, class->constant_pool[index]->info.class_info.name_index);
 }
 
+/* Get name. */
+char *classGetNameAndTypeForName(ClassFile *class, U2 index) {
+    return classGetUtf8(class, class->constant_pool[index]->info.nametype_info.name_index);
+}
+
+/* Get type. */
+char *classGetNameAndTypeForType(ClassFile *class, U2 index) {
+    return classGetUtf8(class, class->constant_pool[index]->info.nametype_info.descriptor_index);
+}
+
 /* Get class attr by tag. 
  * Return NULL if not found. */
 AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag) {

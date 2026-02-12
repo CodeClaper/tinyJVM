@@ -8,6 +8,10 @@
 #include "util.h"
 #include "class.h"
 
+#define PRESEQ      4   /* Columns before sequence in the constant_pool. */
+#define CPINDEX     26  /* Columns before index in the constant_pool. */                  
+#define CPCOMMENT   16  /* COlumn before comment in the constant_pool. */
+
 struct JavaStates javaStates;
 
 static void usage() {
@@ -46,6 +50,12 @@ static void init(int argc, char *argv[]) {
 oom:
     seterror("Out of memory");
     exit(EXIT_FAILURE);
+}
+
+/* Quote method name if is it <init>. */
+static char *quoteName(char *s) {
+    if (strcmp(s, "<init>") == 0) return "\"<init>\"";
+    else return s;
 }
 
 static void printClassAccessFlag(U2 flag) {
@@ -89,13 +99,33 @@ static void printMeta(ClassFile *class) {
     printClassAccessFlag(class->access_flags);
 }
 
+static int printSeqSpace(int i) {
+    int d = 0, r = 0;
+    do { d++; } while(i /= 10);
+    r = d = (d < PRESEQ) ? PRESEQ - d : 0;
+    while ((d--) > 0) putchar(' ');
+    return r;
+}
+
+static void printIndexSpace(int n, int d) {
+    n = n > 0 ? CPINDEX - n - d : 0;
+    printf("%*c", n, ' ');
+}
+
+static void printCommentSpace(int n) {
+    n = n > 0 && n < CPCOMMENT ? CPCOMMENT - n - 1 : 1;
+    printf("%*c", n, ' ');
+}
+
 static void printCP(ClassFile *class) {
-    U2 i;
+    U2 i, n, d;
     ConstantPoolInfo **cp = class->constant_pool;
 
 	printf("Constant pool:\n");
     for (i = 1; i < class->constant_pool_count; i++) {
-        printf("  #%d = %s\t\t\t", i, classGetConstantTagName(cp[i]->tag));
+        d = printSeqSpace(i);
+        n = printf("#%d = %s", i, classGetConstantTagName(cp[i]->tag));
+        printIndexSpace(n, d);
         switch (cp[i]->tag) {
             case CONSTANT_Utf8:
                 printf("%s", cp[i]->info.utf8_info.bytes);
@@ -115,17 +145,47 @@ static void printCP(ClassFile *class) {
                 i++;
                 break;
             case CONSTANT_Class:
+                n = printf("#%u", cp[i]->info.class_info.name_index);
+                printCommentSpace(n);
+                printf("// %s", classGetUtf8(class, cp[i]->info.class_info.name_index));
                 break;
             case CONSTANT_String:
-                printf("#%u", cp[i]->info.string_info.string_index);
-                printf("\t\t// %s", classGetUtf8(class, cp[i]->info.string_info.string_index));
+                n = printf("#%u", cp[i]->info.string_info.string_index);
+                printCommentSpace(n);
+                printf("// %s", classGetUtf8(class, cp[i]->info.string_info.string_index));
                 break;
             case CONSTANT_Fieldref:
+                n = printf("#%u.#%u", cp[i]->info.fieldref_info.class_index, cp[i]->info.fieldref_info.name_type_index);
+                printCommentSpace(n);
+                printf("// %s.%s:%s", classGetClassName(class, cp[i]->info.fieldref_info.class_index), 
+                       classGetNameAndTypeForName(class, cp[i]->info.fieldref_info.name_type_index), 
+                       classGetNameAndTypeForType(class, cp[i]->info.fieldref_info.name_type_index));
+                break;
             case CONSTANT_Methodref:
+                n = printf("#%u.#%u", cp[i]->info.methodref_info.class_index, cp[i]->info.methodref_info.name_type_index);
+                printCommentSpace(n);
+                printf("// %s.%s:%s", classGetClassName(class, cp[i]->info.methodref_info.class_index), 
+                       quoteName(classGetNameAndTypeForName(class, cp[i]->info.methodref_info.name_type_index)), 
+                       classGetNameAndTypeForType(class, cp[i]->info.methodref_info.name_type_index));
+                break;
             case CONSTANT_InterfaceMethodref:
+                n = printf("#%u.#%u", cp[i]->info.interfacemethodref_info.class_index, cp[i]->info.interfacemethodref_info.name_type_index);
+                printCommentSpace(n);
+                printf("// %s.%s:%s", classGetClassName(class, cp[i]->info.interfacemethodref_info.class_index), 
+                       quoteName(classGetNameAndTypeForName(class, cp[i]->info.interfacemethodref_info.name_type_index)), 
+                       classGetNameAndTypeForType(class, cp[i]->info.interfacemethodref_info.name_type_index));
+                break;
+                break;
             case CONSTANT_NameAndType:
+                n = printf("#%u:#%u", cp[i]->info.nametype_info.name_index, cp[i]->info.nametype_info.descriptor_index);
+                printCommentSpace(n);
+                printf("// %s:%s", quoteName(classGetNameAndTypeForName(class, i)), classGetNameAndTypeForType(class, i));
+                break;
             case CONSTANT_MethodHandle:
+                break;
             case CONSTANT_MethodType:
+                printf("#%u", cp[i]->info.methodtype_info.descriptor_index);
+                break;
             case CONSTANT_Dynamic:
             case CONSTANT_InvokeDyanmic:
             case CONSTANT_Module:             
