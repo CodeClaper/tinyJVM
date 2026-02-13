@@ -8,9 +8,9 @@
 #include "util.h"
 #include "class.h"
 
-#define PRESEQ      4   /* Columns before sequence in the constant_pool. */
-#define CPINDEX     26  /* Columns before index in the constant_pool. */                  
-#define CPCOMMENT   16  /* COlumn before comment in the constant_pool. */
+#define PRESEQ      4       /* Columns before sequence in the constant_pool. */
+#define CPINDEX     26      /* Columns before index in the constant_pool. */                  
+#define CPCOMMENT   16      /* COlumn before comment in the constant_pool. */
 
 struct JavaStates javaStates;
 
@@ -53,17 +53,18 @@ static void printFieldAccessFlag(U2 flag) {
         char *s;
     } flags[] = {
         { 0x0001,    "ACC_PUBLIC" },
+        { 0x0002,    "ACC_PRIVATE" },
+        { 0x0004,    "ACC_PROTECTED" },
+        { 0x0008,    "ACC_STATIC" },
         { 0x0010,    "ACC_FINAL" },
-        { 0x0020,    "ACC_SUPER" },
-        { 0x0200,    "ACC_INTERFACE" },
-        { 0x0400,    "ACC_ABSTRACT" },
+        { 0x0040,    "ACC_VOLATILE" },
+        { 0x0080,    "ACC_TRANSIENT" },
         { 0x1000,    "ACC_SYNTHETIC" },
-        { 0x2000,    "ACC_ANNOTATION" },
         { 0x4000,    "ACC_EUM" }
     };
     int p = 0;
     
-    printf("  flags: ");
+    printf("    flags: ");
     for (U2 i = 0; i < LEN(flags); i++) {
         if (flag & flags[i].flag) {
             if (p) printf(", ");
@@ -223,7 +224,7 @@ static void printFieldType(char *type) {
 static void printField(ClassFile *class) {
     for (U2 i = 0; i < class->fields_count; i++) {
         FieldInfo *field = class->fields[i];
-        if (!javaStates.private && field->access_flags & ACC_FIELD_PRIVATE) return;
+        if (!javaStates.javapOptions.private && field->access_flags & ACC_FIELD_PRIVATE) return;
         if (field->access_flags & ACC_FIELD_PRIVATE) printf("  private ");
         else if (field->access_flags & ACC_FIELD_PROTECTED) printf("  protected ");
         else if (field->access_flags & ACC_FIELD_PUBLIC) printf("  public ");
@@ -234,8 +235,9 @@ static void printField(ClassFile *class) {
         printFieldType(classGetUtf8(class, field->descriptor_index));
         printf(" %s", classGetUtf8(class, field->name_index));
         printf(";\n");
-        printf("   descriptor:%s\n", classGetUtf8(class, field->descriptor_index));
-        printf("   flags:%s\n", classGetUtf8(class, field->descriptor_index));
+        if (javaStates.javapOptions.verbose || javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
+        if (javaStates.javapOptions.verbose) printFieldAccessFlag(field->access_flags);
+        if (javaStates.javapOptions.sflag) printf("\n");
     }
 }
 
@@ -293,8 +295,9 @@ static void init(int argc, char *argv[]) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
         } 
-        else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) javaStates.verbose = 1;
-        else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javaStates.private = 1;
+        else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) javaStates.javapOptions.verbose = 1;
+        else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javaStates.javapOptions.private = 1;
+        else if (strcmp(argv[i], "-s") == 0) javaStates.javapOptions.sflag = 1;
         else {
             javaStates.class_name = sstrdup(argv[i]);
             if (javaStates.class_name == NULL) goto oom;
@@ -314,7 +317,7 @@ static void javap() {
 
     printSource(class);
     printHeader(class);
-    if (javaStates.verbose) {
+    if (javaStates.javapOptions.verbose) {
         printf("\n");
         printMeta(class);
         printCP(class);
