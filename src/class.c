@@ -987,7 +987,7 @@ static AttributeTag getAttrTag(char *attr_name) {
 	} tags[] = {
 		{ATT_ConstantValue,                         "ConstantValue" },
 		{ATT_Code,                                  "Code"},
-		{ATT_StatckMapTable,                        "StatckMapTable"},
+		{ATT_StatckMapTable,                        "StackMapTable"},
 		{ATT_Exceptions,                            "Exceptions"},
 		{ATT_InnerClass,                            "InnerClasses"},
 		{ATT_EnclosingMethod,                       "EnclosingMethod"},
@@ -1005,7 +1005,7 @@ static AttributeTag getAttrTag(char *attr_name) {
 		{ATT_AnnotationDefault,                     "AnnotationDefault"},
 		{ATT_BootstrapMethods,                      "BootstrapMethods"}
 	};
-	for (U2 i = 0; tags[i].s; i++)
+	for (U2 i = 0; LEN(tags); i++)
 		if (strcmp(attr_name, tags[i].s) == 0)
             return tags[i].t;
 	return ATT_CUSTOM;

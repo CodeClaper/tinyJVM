@@ -302,13 +302,15 @@ static void printField(ClassFile *class) {
 static void printCode(ClassFile *class, Code_attribute *codeattr) {
     U1 *code;
     U1 opcode;
+    U4 i, base;
+    I2 j, off;
     int m, n;
 
     code = codeattr->code;
 
     printf("    Code:\n");
     if (javaStates.javapOptions.verbose) printf("      statck=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
-    for (U4 i = 0; i < codeattr->code_length; i++) {
+    for (i = 0; i < codeattr->code_length; i++) {
         opcode = code[i];
         if (javaStates.javapOptions.verbose) printf("  ");
         n = printf("%8u: %s", i, getOpName(opcode));
@@ -332,6 +334,7 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                         i += 2;
                         break;
                 }
+                break;
             }
             case BIPUSH: {
                 I1 val;
@@ -352,14 +355,40 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                 I1 val;
                 U1 byte = code[++i];
                 memcpy(&val, &byte, sizeof(val));
-                printf("%*c%d", m, ' ', val);
+                printf("%*c%d, ", m, ' ', val);
                 byte = code[++i];
                 memcpy(&val, &byte, sizeof(val));
                 printf("%d", val);
                 break;
             }
+            case GOTO:
+            case IF_ACMPEQ:
+            case IF_ACMPNE:
+            case IF_ICMPEQ:
+            case IF_ICMPNE:
+            case IF_ICMPGE:
+            case IF_ICMPGT:
+            case IF_ICMPLE:
+            case IF_ICMPLT:
+            case IFEQ:
+            case IFNE:
+            case IFLT:
+            case IFLE:
+            case IFGT:
+            case IFGE:
+            case JSR: {
+                int val;
+                base = i;
+                U1 high_byte = code[++i];
+                U1 low_byte = code[++i];
+                val = castShort(high_byte, low_byte);
+			    memcpy(&off, &val, sizeof(off));
+                off += base;
+			    printf("%*c%d", m, ' ', off);
+                break;
+            }
             default:
-                for (U2 j = 0; j < getNoperands(opcode); j++) i++;
+                for (j = 0; j < getNoperands(opcode); j++) i++;
                 break;
         }
         printf("\n");
