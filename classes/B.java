@@ -14,6 +14,8 @@ public class B extends A  {
 
     @Override
     public void sayHello() {
+        this.a++;
+        this.b++;
         System.out.println("Say Hello from: " + this.name);
     }
 
