@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -17,6 +18,17 @@ float castFloat(U4 bytes) {
     float f;
     memcpy(&f, &bytes, sizeof(U4));
     return f;
+}
+
+/* Case to short., */
+I2 castShort(U1 high_byte, U2 low_byte) {
+    uint16_t s;
+    int16_t v;
+
+    s = (high_byte << 8) | low_byte;
+    memcpy(&v, &s, sizeof(v));
+
+    return v;
 }
 
 /* Cast to long. */

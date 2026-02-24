@@ -231,3 +231,4 @@ typedef enum Instruction {
 } Instruction;
 
 int getNoperands(U1 instruction);
+char *getOpName(U1 instruct);

@@ -897,10 +897,10 @@ char *classGetNameAndTypeForType(ClassFile *class, U2 index) {
 
 /* Get class attr by tag. 
  * Return NULL if not found. */
-AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag) {
-    for (U1 i = 0; i < class->attribute_count; i++) {
-        if (class->attributes[i]->tag == tag)
-            return class->attributes[i];
+AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag) {
+    for (U1 i = 0; i < count; i++) {
+        if (attrs[i]->tag == tag)
+            return attrs[i];
     }
     return NULL;
 }

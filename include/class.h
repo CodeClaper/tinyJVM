@@ -493,7 +493,7 @@ char *classGetUtf8(ClassFile *class, U2 index);
 char *classGetClassName(ClassFile *class, U2 index);
 char *classGetNameAndTypeForName(ClassFile *class, U2 index);
 char *classGetNameAndTypeForType(ClassFile *class, U2 index);
-AttributeInfo *classGetAttr(ClassFile *class, AttributeTag tag);
+AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag);
 bool classIsTopClass(ClassFile *class);
 char *classGetConstantTagName(U1 tag);
 

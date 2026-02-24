@@ -7,9 +7,11 @@
 #include "mmr.h"
 #include "util.h"
 #include "class.h"
+#include "instruct.h"
 
 #define PRESEQ      4       /* Columns before sequence in the constant_pool. */
 #define CPINDEX     26      /* Columns before index in the constant_pool. */                  
+#define CODEINDEX   25      /* Column befire index in the code section. */
 #define CPCOMMENT   16      /* COlumn before comment in the constant_pool. */
 
 struct JavaStates javaStates;
@@ -61,6 +63,38 @@ static void printFieldAccessFlag(U2 flag) {
         { 0x0080,    "ACC_TRANSIENT" },
         { 0x1000,    "ACC_SYNTHETIC" },
         { 0x4000,    "ACC_EUM" }
+    };
+    int p = 0;
+    
+    printf("    flags: ");
+    for (U2 i = 0; i < LEN(flags); i++) {
+        if (flag & flags[i].flag) {
+            if (p) printf(", ");
+            printf("%s", flags[i].s);
+            p = 1;
+        }
+    }
+    printf("\n");
+}
+
+
+static void printMethodAccessFlag(U2 flag) {
+    struct {
+        U2 flag;
+        char *s;
+    } flags[] = {
+        { 0x0001,    "ACC_PUBLIC" },
+        { 0x0002,    "ACC_PRIVATE" },
+        { 0x0004,    "ACC_PROTECTED" },
+        { 0x0008,    "ACC_STATIC" },
+        { 0x0010,    "ACC_FINAL" },
+        { 0x0020,    "ACC_SYNCHRONIZED" },
+        { 0x0040,    "ACC_BRIDGE" },
+        { 0x0080,    "ACC_VARARGS" },
+        { 0x0100,    "ACC_NATIVE" },
+        { 0x0400,    "ACC_ABSTRACT" },     
+        { 0x0800,    "ACC_STRICT" },
+        { 0x1000,    "ACC_SYNTHETIC" }
     };
     int p = 0;
     
@@ -192,7 +226,7 @@ static void printCP(ClassFile *class) {
     }
 }
 
-static void printFieldType(char *type) {
+static char *printType(char *type) {
     char *s = type + 1;
     switch (*type) {
         case 'B': printf("bytes"); break;
@@ -214,10 +248,33 @@ static void printFieldType(char *type) {
             break;
         }
         case '[': {
-            printFieldType(s);
+            printType(s);
             printf("[]");
             break;
         }
+    }
+    return s;
+}
+
+static void printDeclaration(char *descriptor, char *name, int init) {
+    int p = 0;
+    char *s = strrchr(descriptor, ')');
+    if (s == NULL) {
+        printType(descriptor);
+        printf(" %s", name);
+    } else {
+        if (!init) {
+            printType(s + 1);
+            putchar(' ');
+        } 
+        printf("%s(", name);
+        s = descriptor + 1;
+        while (*s && *s != ')') {
+            if (p) printf(", ");
+            s = printType(s);
+            p = 1;
+        }
+        putchar(')');
     }
 }
 
@@ -232,17 +289,126 @@ static void printField(ClassFile *class) {
         if (field->access_flags & ACC_FIELD_FINAL) printf("final ");
         if (field->access_flags & ACC_FIELD_TRANSIENT) printf("transient ");
         if (field->access_flags & ACC_FIELD_VOLATILE) printf("volatile ");
-        printFieldType(classGetUtf8(class, field->descriptor_index));
-        printf(" %s", classGetUtf8(class, field->name_index));
+        char *descriptor = classGetUtf8(class, field->descriptor_index);
+        char *name = classGetUtf8(class, field->name_index);
+        printDeclaration(descriptor, name, false);
         printf(";\n");
         if (javaStates.javapOptions.verbose || javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
         if (javaStates.javapOptions.verbose) printFieldAccessFlag(field->access_flags);
-        if (javaStates.javapOptions.sflag) printf("\n");
+        if (javaStates.javapOptions.verbose || javaStates.javapOptions.cflag || javaStates.javapOptions.lflag) printf("\n");
+    }
+}
+
+static void printCode(ClassFile *class, Code_attribute *codeattr) {
+    U1 *code;
+    U1 opcode;
+    int m, n;
+
+    code = codeattr->code;
+
+    printf("    Code:\n");
+    if (javaStates.javapOptions.verbose) printf("      statck=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
+    for (U4 i = 0; i < codeattr->code_length; i++) {
+        opcode = code[i];
+        if (javaStates.javapOptions.verbose) printf("  ");
+        n = printf("%8u: %s", i, getOpName(opcode));
+        m = n < CODEINDEX ? CODEINDEX - n - 1 : 1;
+        switch (code[i]) {
+            case WIDE: {
+                switch (code[++i]) {
+                    case IINC: 
+                        i += 4;
+                        break;
+                    case ILOAD: 
+                    case FLOAD: 
+                    case ALOAD: 
+                    case LLOAD: 
+                    case DLOAD: 
+                    case ISTORE: 
+                    case FSTORE: 
+                    case ASTORE: 
+                    case LSTORE: 
+                    case DSTORE:
+                        i += 2;
+                        break;
+                }
+            }
+            case BIPUSH: {
+                I1 val;
+                U1 byte = code[++i];
+                memcpy(&val, &byte, sizeof(val));
+                printf("%*c%d", m, ' ', val);
+                break;
+            }
+            case SIPUSH: {
+                I2 val;
+                U1 high_byte = code[++i];
+                U1 low_byte = code[++i];
+                val = castShort(high_byte, low_byte);
+                printf("%*c%d", m, ' ', val);
+                break;
+            }
+            case IINC: {
+                I1 val;
+                U1 byte = code[++i];
+                memcpy(&val, &byte, sizeof(val));
+                printf("%*c%d", m, ' ', val);
+                byte = code[++i];
+                memcpy(&val, &byte, sizeof(val));
+                printf("%d", val);
+                break;
+            }
+            default:
+                for (U2 j = 0; j < getNoperands(opcode); j++) i++;
+                break;
+        }
+        printf("\n");
+    }
+   
+}
+
+static void printMethod(ClassFile *class) {
+    for (U2 i = 0; i < class->method_count; i++) {
+        int init = 0;
+        char *name, *descriptor;
+        MethodInfo *method;
+        AttributeInfo *cattr, *lnattr, *lvattr;
+
+        method = class->methods[i];
+        descriptor = classGetUtf8(class, method->descriptor_index);
+        name = classGetUtf8(class, method->name_index);
+        if (strcmp(name, "<init>") == 0) {
+            name = classGetClassName(class, class->this_class);
+            init = 1;
+        }
+
+        if (!javaStates.javapOptions.private && method->access_flags & ACC_METHOD_PRIVATE) return;
+        if (i && (javaStates.javapOptions.lflag || javaStates.javapOptions.sflag || javaStates.javapOptions.cflag)) putchar('\n');
+        if (method->access_flags & ACC_METHOD_PRIVATE) printf("  private ");
+        else if (method->access_flags & ACC_METHOD_PROTECTED) printf("  protected ");
+        else if (method->access_flags & ACC_METHOD_PUBLIC) printf("  public ");
+        if (method->access_flags & ACC_METHOD_ABSTRACT) printf("abstract ");
+        if (method->access_flags & ACC_METHOD_STATIC) printf("static ");
+        if (method->access_flags & ACC_METHOD_FINAL) printf("final ");
+        if (method->access_flags & ACC_METHOD_SYNCHRONIZED) printf("synchronized ");
+        if (method->access_flags & ACC_METHOD_NATIVE) printf("native ");
+        if (method->access_flags & ACC_METHOD_STRICT) printf("strict ");
+        printDeclaration(descriptor, name, init);
+        printf(";\n");
+        if (javaStates.javapOptions.verbose || javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
+        if (javaStates.javapOptions.verbose) printMethodAccessFlag(method->access_flags);
+
+        cattr = classGetAttr(method->attributes, method->attribute_count, ATT_Code);
+        if (cattr != NULL) {
+            lnattr = classGetAttr(method->attributes, method->attribute_count, ATT_LineNumberTable);
+            lvattr = classGetAttr(method->attributes, method->attribute_count, ATT_LocalVariableTable);
+            if (javaStates.javapOptions.cflag) printCode(class, &cattr->info.code);
+        }
     }
 }
 
 static void printSource(ClassFile *class) {
-    AttributeInfo *attr = classGetAttr(class, ATT_SourceFile);
+    AttributeInfo *attr = classGetAttr(class->attributes, class->attribute_count, ATT_SourceFile);
     if (attr == NULL) return;
 	printf("Compiled from \"%s\"\n", classGetUtf8(class, attr->info.sourcefile.source_index));
 }
@@ -295,9 +461,16 @@ static void init(int argc, char *argv[]) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
         } 
-        else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) javaStates.javapOptions.verbose = 1;
+        else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) {
+            javaStates.javapOptions.verbose = 1;
+            javaStates.javapOptions.sflag = 1;
+            javaStates.javapOptions.lflag = 1;
+            javaStates.javapOptions.cflag = 1;
+        } 
         else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javaStates.javapOptions.private = 1;
         else if (strcmp(argv[i], "-s") == 0) javaStates.javapOptions.sflag = 1;
+        else if (strcmp(argv[i], "-l") == 0) javaStates.javapOptions.lflag = 1;
+        else if (strcmp(argv[i], "-c") == 0) javaStates.javapOptions.cflag = 1;
         else {
             javaStates.class_name = sstrdup(argv[i]);
             if (javaStates.class_name == NULL) goto oom;
@@ -326,6 +499,7 @@ static void javap() {
         printf(" {\n");
     }
     printField(class);
+    printMethod(class);
 }
 
 int main(int argc, char *argv[]) {
