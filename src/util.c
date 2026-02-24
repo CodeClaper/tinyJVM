@@ -6,20 +6,6 @@
 #include "util.h"
 #include "java.h"
 
-/* Cast to int. */
-int castInt(U4 bytes) {
-    int i;
-    memcpy(&i, &bytes, sizeof(U4));
-    return i;
-}
-
-/* Cast to float. */
-float castFloat(U4 bytes) {
-    float f;
-    memcpy(&f, &bytes, sizeof(U4));
-    return f;
-}
-
 /* Case to short., */
 I2 castShort(U1 high_byte, U2 low_byte) {
     uint16_t s;
@@ -31,8 +17,15 @@ I2 castShort(U1 high_byte, U2 low_byte) {
     return v;
 }
 
+/* Cast to int. */
+I4 castInt(U4 bytes) {
+    I4 i;
+    memcpy(&i, &bytes, sizeof(U4));
+    return i;
+}
+
 /* Cast to long. */
-long castLong(U4 high_bytes, U4 low_bytes) {
+I8 castLong(U4 high_bytes, U4 low_bytes) {
 	uint64_t u;
 	int64_t l;
 
@@ -40,6 +33,14 @@ long castLong(U4 high_bytes, U4 low_bytes) {
 	memcpy(&l, &u, sizeof l);
 	return l;
 }
+
+/* Cast to float. */
+float castFloat(U4 bytes) {
+    float f;
+    memcpy(&f, &bytes, sizeof(U4));
+    return f;
+}
+
 
 /* Cast to double. */
 double castDouble(U4 high_bytes, U4 low_bytes) {

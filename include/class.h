@@ -490,7 +490,12 @@ typedef struct StackMapFrame {
 
 ClassFile *loadClass(char *class_name);
 char *classGetUtf8(ClassFile *class, U2 index);
+char *classGetString(ClassFile *class, U2 index);
+I4 classGetInteger(ClassFile *class, U2 index);
+I8 classGetLong(ClassFile *class, U2 index);
+float classGetFloat(ClassFile *class, U2 index);
 char *classGetClassName(ClassFile *class, U2 index);
+double classGetDouble(ClassFile *class, U2 index);
 char *classGetNameAndTypeForName(ClassFile *class, U2 index);
 char *classGetNameAndTypeForType(ClassFile *class, U2 index);
 AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag);

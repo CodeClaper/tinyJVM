@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -878,6 +879,31 @@ char *classGetUtf8(ClassFile *class, U2 index) {
         exit(EXIT_FAILURE);
     }
     return class->constant_pool[index]->info.utf8_info.bytes;
+}
+
+/* Get String from String reference. */
+char *classGetString(ClassFile *class, U2 index) {
+    return classGetUtf8(class, class->constant_pool[index]->info.string_info.string_index);
+}
+
+/* Get int from Integer reference. */
+I4 classGetInteger(ClassFile *class, U2 index) {
+    return castInt(class->constant_pool[index]->info.integer_info.bytes);
+}
+
+/* Get long from Long reference. */
+I8 classGetLong(ClassFile *class, U2 index) {
+    return castLong(class->constant_pool[index]->info.long_info.high_bytes, class->constant_pool[index]->info.long_info.low_bytes);
+}
+
+/* Get float from Float reference. */
+float classGetFloat(ClassFile *class, U2 index) {
+    return castFloat(class->constant_pool[index]->info.integer_info.bytes);
+}
+
+/* Get double from Double reference. */
+double classGetDouble(ClassFile *class, U2 index) {
+    return castDouble(class->constant_pool[index]->info.long_info.high_bytes, class->constant_pool[index]->info.long_info.low_bytes); 
 }
 
 /* Get class name. */

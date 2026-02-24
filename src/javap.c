@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,10 +12,17 @@
 
 #define PRESEQ      4       /* Columns before sequence in the constant_pool. */
 #define CPINDEX     26      /* Columns before index in the constant_pool. */                  
-#define CODEINDEX   25      /* Column befire index in the code section. */
 #define CPCOMMENT   16      /* COlumn before comment in the constant_pool. */
+#define CODEINDEX   25      /* Column befire index in the code section. */
+#define CODECOMMENT 45      /* Column before comments in the code section*/
 
 struct JavaStates javaStates;
+
+
+/* Get number of columns to align index or comment text. */
+static inline int getColumn(int max, int n) {
+    return (n > 0 && n < max) ? max - n - 1 : 1;
+}
 
 /* Quote method name if is it <init>. */
 static char *quoteName(char *s) {
@@ -303,8 +311,11 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
     U1 *code;
     U1 opcode;
     U4 i, base;
-    I2 j, off;
+    U4 a, b, c, d;
+    I2 off;
+    I4 j, offw, match, def, npairs, low, high;
     int m, n;
+    char *cname, *name, *type;
 
     code = codeattr->code;
 
@@ -314,7 +325,7 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
         opcode = code[i];
         if (javaStates.javapOptions.verbose) printf("  ");
         n = printf("%8u: %s", i, getOpName(opcode));
-        m = n < CODEINDEX ? CODEINDEX - n - 1 : 1;
+        m = getColumn(CODEINDEX, n);
         switch (code[i]) {
             case WIDE: {
                 switch (code[++i]) {
@@ -377,14 +388,171 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
             case IFGT:
             case IFGE:
             case JSR: {
-                int val;
+                I2 val;
                 base = i;
-                U1 high_byte = code[++i];
-                U1 low_byte = code[++i];
-                val = castShort(high_byte, low_byte);
+                val = code[++i] << 8;
+                val |= code[++i];
 			    memcpy(&off, &val, sizeof(off));
                 off += base;
 			    printf("%*c%d", m, ' ', off);
+                break;
+            }
+            case GOTO_W:
+            case JSR_W: {
+                I4 val;
+			    base = i;
+                a = code[++i];
+                b = code[++i];
+                c = code[++i];
+                d = code[++i];
+                val = (a << 24) | (b << 16) | (c << 8) | d;
+			    memcpy(&offw, &val, sizeof(offw));
+                offw += base;
+			    printf("%*c%d", m, ' ', offw);
+                break;
+            }
+            case LOOKUPSWITCH: {
+			    base = i++;
+                while (i % 4) i++;
+                a = code[i++];
+                b = code[i++];
+                c = code[i++];
+                d = code[i++];
+                def = ((a << 24) | (b << 16) | (c << 8) | d) + base;
+                a = code[i++];
+                b = code[i++];
+                c = code[i++];
+                d = code[i++];
+                npairs = (a << 24) | (b << 16) | (c << 8) | d;
+                printf("   { // %d\n", npairs);
+                for (j = 0; j < npairs; j++) {
+                    a = code[i++];
+                    b = code[i++];
+                    c = code[i++];
+                    d = code[i++];
+                    match = (a << 24) | (b << 16) | (c << 8) | d;
+                    a = code[i++];
+                    b = code[i++];
+                    c = code[i++];
+                    d = code[i++];
+                    offw = ((a << 24) | (b << 16) | (c << 8) | d) + base;
+                    printf("%24d: %d\n", match, offw);
+                }
+                i--;
+                printf("                 default: %d\n", def);
+                printf("            }");
+                break;
+            }
+            case TABLESWITCH: {
+			    base = i++;
+                while (i % 4) i++;
+                a = code[i++];
+                b = code[i++];
+                c = code[i++];
+                d = code[i++];
+                def = ((a << 24) | (b << 16) | (c << 8) | d) + base;
+                a = code[i++];
+                b = code[i++];
+                c = code[i++];
+                d = code[i++];
+                low = (a << 24) | (b << 16) | (c << 8) | d;
+                a = code[i++];
+                b = code[i++];
+                c = code[i++];
+                d = code[i++];
+                high = (a << 24) | (b << 16) | (c << 8) | d;
+                printf("   { // %d to %d\n", low, high);
+                for (j = low; j <= high; j++) {
+                    a = code[i++];
+                    b = code[i++];
+                    c = code[i++];
+                    d = code[i++];
+                    offw = ((a << 24) | (b << 16) | (c << 8) | d) + base;
+                    printf("%24d: %d\n", j, offw);
+                }
+                i--;
+                printf("                 default: %d\n", def);
+                printf("            }");
+                break;
+            }
+            case GETSTATIC: {
+                U2 val;
+                a = code[++i];
+                b = code[++i];
+                val = a << 8 | b;
+                n += printf("%*c#%u", m, ' ', val);
+                m = getColumn(CODECOMMENT, n);
+                cname = classGetClassName(class, class->constant_pool[val]->info.fieldref_info.class_index); 
+                name = classGetNameAndTypeForName(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                type = classGetNameAndTypeForType(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                printf("%*c// Field %s.%s:%s", m, ' ', cname, name, type);
+                break;
+            }
+            case INVOKEVIRTUAL:
+            case INVOKESPECIAL:
+            case INVOKESTATIC: {
+                U2 val;
+                a = code[++i];
+                b = code[++i];
+                val = a << 8 | b;
+                n += printf("%*c#%u", m, ' ', val);
+                m = getColumn(CODECOMMENT, n);
+                cname = classGetClassName(class, class->constant_pool[val]->info.fieldref_info.class_index); 
+                name = classGetNameAndTypeForName(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                type = classGetNameAndTypeForType(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                if (strcmp(cname, classGetClassName(class, class->this_class)) == 0) cname = "";
+                name = quoteName(name);
+                printf("%*c// Method %s%s%s:%s", m, ' ', cname, (*cname == '\0' ? "" : "."), name, type);
+                break;
+            }
+            case LDC:
+            case LDC_W:
+            case LDC2_W: {
+                I2 val;
+                a = (code[i] == LDC_W || code[i] == LDC2_W) ? code[++i] : 0;
+                b = code[++i];
+                val = (a << 8) | b;
+                n += printf("%*c#%u", m, ' ', val);
+                m = getColumn(CODECOMMENT, n);
+                switch (class->constant_pool[val]->tag) {
+                    case CONSTANT_String:
+                        printf("%*c// String %s", m, ' ', classGetString(class, val));
+                        break;
+                    case CONSTANT_Integer:
+                        printf("%*c// Integer %d", m, ' ', classGetInteger(class, val));
+                        break;
+                    case CONSTANT_Long:
+                        printf("%*c// Integer %ld", m, ' ', classGetLong(class, val));
+                        break;
+                    case CONSTANT_Double:
+                        printf("%*c// double %gd", m, ' ', classGetDouble(class, val));
+                        break;
+                    case CONSTANT_Float:
+                        printf("%*c// double %gf", m, ' ', classGetFloat(class, val));
+                        break;
+                }
+                break;
+            }
+            case ANEWARRAY: {
+                I2 val;
+                a = code[++i];
+                b = code[++i];
+                val = a << 8 | b;
+                n += printf("%*c#%u", m,' ', val);
+                m = getColumn(CODECOMMENT, n);
+                cname = classGetUtf8(class, class->constant_pool[val]->info.class_info.name_index); 
+                printf("%*c// class \"%s\"", m, ' ', cname);
+                break;
+            }
+            case MULTIANEWARRAY: {
+                I2 val;
+                a = code[++i];
+                b = code[++i];
+                val = a << 8 | b;
+                n += printf(" #%u,  %u", val, code[++i]);
+                m = getColumn(CODECOMMENT, n);
+                cname = classGetUtf8(class, class->constant_pool[val]->info.class_info.name_index); 
+                printf("%*c// class \"%s\"", m, ' ', cname);
                 break;
             }
             default:
