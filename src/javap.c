@@ -311,8 +311,8 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
     U1 *code;
     U1 opcode;
     U4 i, base;
-    U4 a, b, c, d;
     I2 off;
+    U1 a, b, c, d;
     I4 j, offw, match, def, npairs, low, high;
     int m, n;
     char *cname, *name, *type;
@@ -409,6 +409,20 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
 			    memcpy(&offw, &val, sizeof(offw));
                 offw += base;
 			    printf("%*c%d", m, ' ', offw);
+                break;
+            }
+            case ISTORE:
+            case LSTORE:
+            case FSTORE:
+            case DSTORE:
+            case ASTORE: 
+            case ILOAD: 
+            case LLOAD:
+            case FLOAD: 
+            case DLOAD: 
+            case ALOAD: {
+                U1 val = code[++i];
+			    printf("%*c%d", m, ' ', val);
                 break;
             }
             case LOOKUPSWITCH: {
@@ -533,6 +547,7 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                 }
                 break;
             }
+            case NEW:
             case ANEWARRAY: {
                 I2 val;
                 a = code[++i];
@@ -541,7 +556,7 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                 n += printf("%*c#%u", m,' ', val);
                 m = getColumn(CODECOMMENT, n);
                 cname = classGetUtf8(class, class->constant_pool[val]->info.class_info.name_index); 
-                printf("%*c// class \"%s\"", m, ' ', cname);
+                printf("%*c// class %s", m, ' ', cname);
                 break;
             }
             case MULTIANEWARRAY: {
