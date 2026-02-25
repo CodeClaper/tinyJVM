@@ -1022,6 +1022,7 @@ static AttributeTag getAttrTag(char *attr_name) {
 		{ATT_SourceFile,                            "SourceFile"},
 		{ATT_SourceDebugExtension,                  "SourceDebugExtension"},
 		{ATT_LineNumberTable,                       "LineNumberTable"},
+		{ATT_LocalVariableTable,                    "LocalVariableTable"},
 		{ATT_LocalVariableTypeTable,                "LocalVariableTypeTable"},
 		{ATT_Deprecated,                            "Deprecated"},
 		{ATT_RuntimeVisibleAnnotations,             "RuntimeVisibleAnnotations"},

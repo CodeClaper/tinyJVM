@@ -286,6 +286,7 @@ static void printDeclaration(char *descriptor, char *name, int init) {
     }
 }
 
+/* Print out field. */
 static void printField(ClassFile *class) {
     for (U2 i = 0; i < class->fields_count; i++) {
         FieldInfo *field = class->fields[i];
@@ -301,12 +302,13 @@ static void printField(ClassFile *class) {
         char *name = classGetUtf8(class, field->name_index);
         printDeclaration(descriptor, name, false);
         printf(";\n");
-        if (javaStates.javapOptions.verbose || javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
+        if (javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
         if (javaStates.javapOptions.verbose) printFieldAccessFlag(field->access_flags);
-        if (javaStates.javapOptions.verbose || javaStates.javapOptions.cflag || javaStates.javapOptions.lflag) printf("\n");
+        if (javaStates.javapOptions.cflag || javaStates.javapOptions.lflag) printf("\n");
     }
 }
 
+/* Print out method code. */
 static void printCode(ClassFile *class, Code_attribute *codeattr) {
     U1 *code;
     U1 opcode;
@@ -320,11 +322,11 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
     code = codeattr->code;
 
     printf("    Code:\n");
-    if (javaStates.javapOptions.verbose) printf("      statck=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
+    if (javaStates.javapOptions.verbose) printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
     for (i = 0; i < codeattr->code_length; i++) {
         opcode = code[i];
         if (javaStates.javapOptions.verbose) printf("  ");
-        n = printf("%8u: %s", i, getOpName(opcode));
+        n = printf("%7u: %s", i, getOpName(opcode));
         m = getColumn(CODEINDEX, n);
         switch (code[i]) {
             case WIDE: {
@@ -579,6 +581,33 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
    
 }
 
+/* Print out line numbers. */
+static void printLineNumbers(LineNumberTable_attribute *ltattr) {
+    printf("     LineNumberTable:\n");
+    for (U2 i = 0; i < ltattr->line_number_table_length; i++) {
+        printf("       line %u: %u\n", ltattr->line_number_table[i]->line_number, ltattr->line_number_table[i]->start_pc);
+    }
+}
+
+/* Print out local vars. */
+static void printLocalVars(ClassFile *class, LocalVariableTable_attribute *lvattr) {
+    U2 count, i;
+    LocalVariable *lv;
+    
+    count = lvattr->local_variable_table_length;
+    if (count == 0) return;
+    printf("     LocalVariableTable:\n");
+    printf("       Start  Length  Slot  Name  Signature\n");
+    for (i = 0; i < count; i++) {
+        lv = lvattr->local_variable_table[i];
+        printf("     %7u %7u %5u %5s  %s\n",
+               lv->start_pc, lv->length, lv->index, 
+               classGetUtf8(class, lv->name_index), 
+               classGetUtf8(class, lv->descriptor_index));
+    }
+}
+
+/* Print method. */
 static void printMethod(ClassFile *class) {
     for (U2 i = 0; i < class->method_count; i++) {
         int init = 0;
@@ -607,14 +636,16 @@ static void printMethod(ClassFile *class) {
         if (method->access_flags & ACC_METHOD_STRICT) printf("strict ");
         printDeclaration(descriptor, name, init);
         printf(";\n");
-        if (javaStates.javapOptions.verbose || javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
+        if (javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
         if (javaStates.javapOptions.verbose) printMethodAccessFlag(method->access_flags);
 
         cattr = classGetAttr(method->attributes, method->attribute_count, ATT_Code);
         if (cattr != NULL) {
-            lnattr = classGetAttr(method->attributes, method->attribute_count, ATT_LineNumberTable);
-            lvattr = classGetAttr(method->attributes, method->attribute_count, ATT_LocalVariableTable);
+            lnattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LineNumberTable);
+            lvattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LocalVariableTable);
             if (javaStates.javapOptions.cflag) printCode(class, &cattr->info.code);
+            if (javaStates.javapOptions.lflag && lnattr != NULL) printLineNumbers(&lnattr->info.linenumbertable);
+            if (javaStates.javapOptions.lflag && lvattr != NULL) printLocalVars(class, &lvattr->info.localvariabletable);
         }
     }
 }
@@ -712,6 +743,7 @@ static void javap() {
     }
     printField(class);
     printMethod(class);
+    printf("}\n");
 }
 
 int main(int argc, char *argv[]) {
