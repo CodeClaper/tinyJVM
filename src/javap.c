@@ -322,7 +322,8 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
     code = codeattr->code;
 
     printf("    Code:\n");
-    if (javaStates.javapOptions.verbose) printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
+    if (javaStates.javapOptions.verbose) 
+        printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
     for (i = 0; i < codeattr->code_length; i++) {
         opcode = code[i];
         if (javaStates.javapOptions.verbose) printf("  ");
@@ -427,6 +428,20 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
 			    printf("%*c%d", m, ' ', val);
                 break;
             }
+            case GETFIELD:
+            case PUTFIELD: {
+                U2 val;
+                a = code[++i];
+                b = code[++i];
+                val = a << 8 | b;
+                n += printf("%*c#%u", m, ' ', val);
+                m = getColumn(CODECOMMENT, n);
+                name = classGetNameAndTypeForName(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                type = classGetNameAndTypeForType(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                printf("%*c// Field %s:%s", m, ' ', name, type);
+                break;
+                break;
+            }
             case LOOKUPSWITCH: {
 			    base = i++;
                 while (i % 4) i++;
@@ -519,6 +534,24 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                 if (strcmp(cname, classGetClassName(class, class->this_class)) == 0) cname = "";
                 name = quoteName(name);
                 printf("%*c// Method %s%s%s:%s", m, ' ', cname, (*cname == '\0' ? "" : "."), name, type);
+                break;
+            }
+            case INVOKEINTERFACE: {
+                U2 val;
+                U1 count;
+                a = code[++i];
+                b = code[++i];
+                count = code[++i];
+                val = a << 8 | b;
+                n += printf("%*c#%u,  %u", m, ' ', val, count);
+                m = getColumn(CODECOMMENT, n);
+                cname = classGetClassName(class, class->constant_pool[val]->info.fieldref_info.class_index); 
+                name = classGetNameAndTypeForName(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                type = classGetNameAndTypeForType(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
+                if (strcmp(cname, classGetClassName(class, class->this_class)) == 0) cname = "";
+                name = quoteName(name);
+                printf("%*c// Method %s%s%s:%s", m, ' ', cname, (*cname == '\0' ? "" : "."), name, type);
+                i++;
                 break;
             }
             case LDC:
@@ -650,12 +683,14 @@ static void printMethod(ClassFile *class) {
     }
 }
 
+/* Print source. */
 static void printSource(ClassFile *class) {
     AttributeInfo *attr = classGetAttr(class->attributes, class->attribute_count, ATT_SourceFile);
     if (attr == NULL) return;
 	printf("Compiled from \"%s\"\n", classGetUtf8(class, attr->info.sourcefile.source_index));
 }
 
+/* Print out header. */
 static void printHeader(ClassFile *class) {
     if (class->access_flags & ACC_CLASS_PUBLIC) printf("public ");
     if (class->access_flags & ACC_CLASS_INTERFACE) printf("interface ");
