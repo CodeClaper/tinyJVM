@@ -1,5 +1,12 @@
 #include "c.h"
 
+typedef enum OpReturn {
+    NO_RETURN       = 0,
+    RETURN_VOID     = 1,
+    RETURN_OPERAND  = 2,
+    RETURN_ERR      = 3
+} OpReturn;
+
 typedef enum Instruction {
 	/* constants */
 	NOP             = 0x00,

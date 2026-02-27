@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "mmr.h"
 #include "c.h"
+#include "java.h"
+#include "util.h"
 
 void *salloc(size_t size) {
     void *p = malloc(size);
@@ -26,3 +28,4 @@ char *sstrdup(char *input) {
 void sfree(void *p) {
     free(p);
 }
+

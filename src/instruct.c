@@ -1,4 +1,5 @@
 #include "instruct.h"
+#include "frame.h"
 
 #define OP_WIDE         -1
 #define OP_TABLESWITCH  -2
@@ -423,4 +424,13 @@ int getNoperands(U1 instruction) {
 /* Get op name. */
 char *getOpName(U1 instruct) {
     return instrnames[instruct];
+}
+
+static int op_nop(Frame *frame) {
+    UNUSED(frame);
+    return NO_RETURN;
+}
+
+static int op_pop(Frame *frame) {
+    return NO_RETURN;
 }

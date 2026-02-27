@@ -5,6 +5,7 @@
 #include "c.h"
 #include "mmr.h"
 #include "util.h"
+#include "frame.h"
 
 struct JavaStates javaStates;
 
@@ -44,9 +45,18 @@ oom:
     exit(EXIT_FAILURE);
 }
 
+int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {
+    return 0;
+}
+
 static void java(void) {
-    ClassFile *class = loadClass(javaStates.class_name);
+    ClassFile *class;
+    Frame *frame;
+
+    class = loadClass(javaStates.class_name);
     if (class == NULL) exit(EXIT_FAILURE);
+    frame = framePush(class, 0, 1, NULL);
+    if (methodCall(class, frame, "main", "([Ljava/lang/String;)V", (ACC_METHOD_PUBLIC | ACC_METHOD_STATIC)) == ERR) seterror("Could not find main method.");
 }
 
 static void afterexist(void) {

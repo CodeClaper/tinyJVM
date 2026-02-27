@@ -12,6 +12,14 @@ typedef struct JavaStates {
     ClassFile       *classes;
 } JavaStates;
 
+
+typedef union Value {
+    I4              i;
+    I8              l;
+    float           f;
+    double          d;
+} Value;
+
 extern struct JavaStates javaStates; /* server global state */
 
 #endif
