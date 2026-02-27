@@ -17,6 +17,7 @@
 #define CODECOMMENT 45      /* Column before comments in the code section*/
 
 struct JavaStates javaStates;
+struct JavapOptions javapOptions;
 
 
 /* Get number of columns to align index or comment text. */
@@ -290,7 +291,7 @@ static void printDeclaration(char *descriptor, char *name, int init) {
 static void printField(ClassFile *class) {
     for (U2 i = 0; i < class->fields_count; i++) {
         FieldInfo *field = class->fields[i];
-        if (!javaStates.javapOptions.private && field->access_flags & ACC_FIELD_PRIVATE) return;
+        if (!javapOptions.private && field->access_flags & ACC_FIELD_PRIVATE) return;
         if (field->access_flags & ACC_FIELD_PRIVATE) printf("  private ");
         else if (field->access_flags & ACC_FIELD_PROTECTED) printf("  protected ");
         else if (field->access_flags & ACC_FIELD_PUBLIC) printf("  public ");
@@ -302,9 +303,9 @@ static void printField(ClassFile *class) {
         char *name = classGetUtf8(class, field->name_index);
         printDeclaration(descriptor, name, false);
         printf(";\n");
-        if (javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
-        if (javaStates.javapOptions.verbose) printFieldAccessFlag(field->access_flags);
-        if (javaStates.javapOptions.cflag || javaStates.javapOptions.lflag) printf("\n");
+        if (javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, field->descriptor_index));
+        if (javapOptions.verbose) printFieldAccessFlag(field->access_flags);
+        if (javapOptions.cflag || javapOptions.lflag) printf("\n");
     }
 }
 
@@ -322,11 +323,11 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
     code = codeattr->code;
 
     printf("    Code:\n");
-    if (javaStates.javapOptions.verbose) 
+    if (javapOptions.verbose) 
         printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
     for (i = 0; i < codeattr->code_length; i++) {
         opcode = code[i];
-        if (javaStates.javapOptions.verbose) printf("  ");
+        if (javapOptions.verbose) printf("  ");
         n = printf("%7u: %s", i, getOpName(opcode));
         m = getColumn(CODEINDEX, n);
         switch (code[i]) {
@@ -439,7 +440,6 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
                 name = classGetNameAndTypeForName(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
                 type = classGetNameAndTypeForType(class, class->constant_pool[val]->info.fieldref_info.name_type_index);
                 printf("%*c// Field %s:%s", m, ' ', name, type);
-                break;
                 break;
             }
             case LOOKUPSWITCH: {
@@ -656,8 +656,8 @@ static void printMethod(ClassFile *class) {
             init = 1;
         }
 
-        if (!javaStates.javapOptions.private && method->access_flags & ACC_METHOD_PRIVATE) return;
-        if (i && (javaStates.javapOptions.lflag || javaStates.javapOptions.sflag || javaStates.javapOptions.cflag)) putchar('\n');
+        if (!javapOptions.private && method->access_flags & ACC_METHOD_PRIVATE) return;
+        if (i && (javapOptions.lflag || javapOptions.sflag || javapOptions.cflag)) putchar('\n');
         if (method->access_flags & ACC_METHOD_PRIVATE) printf("  private ");
         else if (method->access_flags & ACC_METHOD_PROTECTED) printf("  protected ");
         else if (method->access_flags & ACC_METHOD_PUBLIC) printf("  public ");
@@ -669,16 +669,16 @@ static void printMethod(ClassFile *class) {
         if (method->access_flags & ACC_METHOD_STRICT) printf("strict ");
         printDeclaration(descriptor, name, init);
         printf(";\n");
-        if (javaStates.javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
-        if (javaStates.javapOptions.verbose) printMethodAccessFlag(method->access_flags);
+        if (javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
+        if (javapOptions.verbose) printMethodAccessFlag(method->access_flags);
 
         cattr = classGetAttr(method->attributes, method->attribute_count, ATT_Code);
         if (cattr != NULL) {
             lnattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LineNumberTable);
             lvattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LocalVariableTable);
-            if (javaStates.javapOptions.cflag) printCode(class, &cattr->info.code);
-            if (javaStates.javapOptions.lflag && lnattr != NULL) printLineNumbers(&lnattr->info.linenumbertable);
-            if (javaStates.javapOptions.lflag && lvattr != NULL) printLocalVars(class, &lvattr->info.localvariabletable);
+            if (javapOptions.cflag) printCode(class, &cattr->info.code);
+            if (javapOptions.lflag && lnattr != NULL) printLineNumbers(&lnattr->info.linenumbertable);
+            if (javapOptions.lflag && lvattr != NULL) printLocalVars(class, &lvattr->info.localvariabletable);
         }
     }
 }
@@ -740,15 +740,15 @@ static void init(int argc, char *argv[]) {
             else addClassPath(argv[i]);
         } 
         else if (strcmp(argv[i], "-verbose") == 0 || strcmp(argv[i], "-v") == 0) {
-            javaStates.javapOptions.verbose = 1;
-            javaStates.javapOptions.sflag = 1;
-            javaStates.javapOptions.lflag = 1;
-            javaStates.javapOptions.cflag = 1;
+            javapOptions.verbose = 1;
+            javapOptions.sflag = 1;
+            javapOptions.lflag = 1;
+            javapOptions.cflag = 1;
         } 
-        else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javaStates.javapOptions.private = 1;
-        else if (strcmp(argv[i], "-s") == 0) javaStates.javapOptions.sflag = 1;
-        else if (strcmp(argv[i], "-l") == 0) javaStates.javapOptions.lflag = 1;
-        else if (strcmp(argv[i], "-c") == 0) javaStates.javapOptions.cflag = 1;
+        else if (strcmp(argv[i], "-private") == 0 || strcmp(argv[i], "-p") == 0) javapOptions.private = 1;
+        else if (strcmp(argv[i], "-s") == 0) javapOptions.sflag = 1;
+        else if (strcmp(argv[i], "-l") == 0) javapOptions.lflag = 1;
+        else if (strcmp(argv[i], "-c") == 0) javapOptions.cflag = 1;
         else {
             javaStates.class_name = sstrdup(argv[i]);
             if (javaStates.class_name == NULL) goto oom;
@@ -768,7 +768,7 @@ static void javap() {
 
     printSource(class);
     printHeader(class);
-    if (javaStates.javapOptions.verbose) {
+    if (javapOptions.verbose) {
         printf("\n");
         printMeta(class);
         printCP(class);
