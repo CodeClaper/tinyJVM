@@ -265,8 +265,8 @@ static char *printType(char *type) {
     return s;
 }
 
-static void printDeclaration(char *descriptor, char *name, int init) {
-    int p = 0;
+static U2 printDeclaration(char *descriptor, char *name, int init) {
+    int nargs = 0;
     char *s = strrchr(descriptor, ')');
     if (s == NULL) {
         printType(descriptor);
@@ -279,12 +279,14 @@ static void printDeclaration(char *descriptor, char *name, int init) {
         printf("%s(", name);
         s = descriptor + 1;
         while (*s && *s != ')') {
-            if (p) printf(", ");
+            if (nargs) printf(", ");
             s = printType(s);
-            p = 1;
+            nargs++;
         }
         putchar(')');
     }
+
+    return nargs;
 }
 
 /* Print out field. */
@@ -310,7 +312,7 @@ static void printField(ClassFile *class) {
 }
 
 /* Print out method code. */
-static void printCode(ClassFile *class, Code_attribute *codeattr) {
+static void printCode(ClassFile *class, Code_attribute *codeattr, U2 nargs) {
     U1 *code;
     U1 opcode;
     U4 i, base;
@@ -324,7 +326,7 @@ static void printCode(ClassFile *class, Code_attribute *codeattr) {
 
     printf("    Code:\n");
     if (javapOptions.verbose) 
-        printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, 0);
+        printf("      stack=%u, locals=%u, args_size=%u\n", codeattr->max_stack, codeattr->max_locals, nargs);
     for (i = 0; i < codeattr->code_length; i++) {
         opcode = code[i];
         if (javapOptions.verbose) printf("  ");
@@ -644,6 +646,7 @@ static void printLocalVars(ClassFile *class, LocalVariableTable_attribute *lvatt
 static void printMethod(ClassFile *class) {
     for (U2 i = 0; i < class->method_count; i++) {
         int init = 0;
+        U2 nargs;
         char *name, *descriptor;
         MethodInfo *method;
         AttributeInfo *cattr, *lnattr, *lvattr;
@@ -667,7 +670,9 @@ static void printMethod(ClassFile *class) {
         if (method->access_flags & ACC_METHOD_SYNCHRONIZED) printf("synchronized ");
         if (method->access_flags & ACC_METHOD_NATIVE) printf("native ");
         if (method->access_flags & ACC_METHOD_STRICT) printf("strict ");
-        printDeclaration(descriptor, name, init);
+        nargs = printDeclaration(descriptor, name, init);
+        /* If not static method, add <this> arguement.*/
+        if (!(method->access_flags & ACC_METHOD_STATIC)) nargs++;
         printf(";\n");
         if (javapOptions.sflag) printf("    descriptor: %s\n", classGetUtf8(class, method->descriptor_index));
         if (javapOptions.verbose) printMethodAccessFlag(method->access_flags);
@@ -676,7 +681,7 @@ static void printMethod(ClassFile *class) {
         if (cattr != NULL) {
             lnattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LineNumberTable);
             lvattr = classGetAttr(cattr->info.code.attributes, cattr->info.code.attribute_count, ATT_LocalVariableTable);
-            if (javapOptions.cflag) printCode(class, &cattr->info.code);
+            if (javapOptions.cflag) printCode(class, &cattr->info.code, nargs);
             if (javapOptions.lflag && lnattr != NULL) printLineNumbers(&lnattr->info.linenumbertable);
             if (javapOptions.lflag && lvattr != NULL) printLocalVars(class, &lvattr->info.localvariabletable);
         }
