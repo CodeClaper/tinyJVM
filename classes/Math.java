@@ -8,7 +8,7 @@ public class Math {
     }
 
     public int avg(int a, int b) {
-        int sum = a + b;
-        return sum / 2;
+        long sum = a + b;
+        return (int)(sum / 2);
     }
 }
