@@ -94,7 +94,7 @@ void error(char *format, ...) {
     va_start(ap, format);
     vsnprintf(message, len, format, ap);
     va_end(ap);
-    memcpy(javaStates.error, message, len);
+    fprintf(stderr, "%s\n", message);
 
     exit(1);
 }

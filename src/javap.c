@@ -769,7 +769,7 @@ oom:
 
 static void javap() {
     ClassFile *class = loadClass(javaStates.class_name);
-    if (class == NULL) exit(EXIT_FAILURE);
+    if (class == NULL) error("Load class file fail.");
 
     printSource(class);
     printHeader(class);

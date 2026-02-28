@@ -1071,10 +1071,8 @@ static FILE *getFile(char *class_name) {
     for (int i = 0; i < javaStates.num_class_path; i++) {
         size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
         filename = salloc(size);
-        if (filename == NULL) {
-            seterror("Out of memory");
-            return NULL;
-        }
+        if (filename == NULL) 
+            error("Out of memory");
         sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
 		if ((fp = fopen(filename, "r")) != NULL) {
 			sfree(filename);
@@ -1084,7 +1082,7 @@ static FILE *getFile(char *class_name) {
     }
 
     if (fp == NULL) 
-        seterror("Not found class: %s", class_name);
+        error("Not found class file: %s", class_name);
     return fp;
 }
 
@@ -1095,10 +1093,10 @@ static ClassFile *getClass(char *class_name) {
     class = getClassFromCache(class_name);
     if (class != NULL) return class;
     class = salloc(sizeof(ClassFile));
-    if (class == NULL) return NULL;
+    if (class == NULL) error("Out of memory.");
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
-    if (readClass(fp, class) == ERR) return NULL;
+    if (readClass(fp, class) == ERR) error("Parse class file fail. ");
 
     class->next = javaStates.classes;
     return class;
