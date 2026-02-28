@@ -10,8 +10,8 @@ headers = $(shell find $(includedir) -name "*.h")
 
 JAVA  		:= java
 JAVAP 		:= javap
-JAVAOBJS 	:= java.o class.o mmr.o util.o instruct.o frame.o heap.o
-JAVAPOBJS 	:= javap.o class.o mmr.o util.o instruct.o frame.o heap.o
+JAVAOBJS 	:= java.o class.o mmr.o util.o instruct.o frame.o heap.o native.o
+JAVAPOBJS 	:= javap.o class.o mmr.o util.o instruct.o frame.o heap.o native.o
 INC 		:= -I$(includedir)
 
 all: ${JAVA} ${JAVAP}
@@ -28,6 +28,7 @@ class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(included
 instruct.o:	$(includedir)/instruct.h $(includedir)/c.h $(includedir)/frame.h
 frame.o:	$(includedir)/frame.h $(includedir)/c.h $(includedir)/java.h $(includedir)/mmr.h $(includedir)/util.h
 heap.o:		$(includedir)/heap.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h
+native.o:	$(includedir)/native.h $(includedir)/c.h
 mmr.o:		$(includedir)/mmr.h
 util.o:		$(includedir)/util.h
 

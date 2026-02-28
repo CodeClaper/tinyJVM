@@ -1088,6 +1088,8 @@ static FILE *getFile(char *class_name) {
     return fp;
 }
 
+/* Get class.
+ * First find in cache, if missing, read class file. */
 static ClassFile *getClass(char *class_name) {
     ClassFile *class;
     FILE *fp;
