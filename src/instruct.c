@@ -1,9 +1,24 @@
 #include "instruct.h"
 #include "frame.h"
+#include "java.h"
 
 #define OP_WIDE         -1
 #define OP_TABLESWITCH  -2
 #define OP_LOOKUPSWITCH -3
+
+static int op_nop(Frame *frame);
+static int op_pop(Frame *frame);
+static int op_pop2(Frame *frame);
+static int op_bipush(Frame *frame);
+static int op_sipush(Frame *frame);
+static int op_istore_1(Frame *frame);
+static int op_istore_2(Frame *frame);
+static int op_istore_3(Frame *frame);
+static int op_iload_1(Frame *frame);
+static int op_iload_2(Frame *frame);
+static int op_iload_3(Frame *frame);
+static int op_iadd(Frame *frame);
+static int op_ireturn(Frame *frame);
 
 static int noperands[] = {
 	[NOP]             = 0,
@@ -416,6 +431,211 @@ static char *instrnames[CODE_LAST] = {
 	[JSR_W]           = "jsr_w",
 };
 
+static INSTRUCT instrtab[] = {
+	[NOP]             = op_nop,
+	[ACONST_NULL]     = op_nop,
+	[ICONST_M1]       = op_nop,
+	[ICONST_0]        = op_nop,
+	[ICONST_1]        = op_nop,
+	[ICONST_2]        = op_nop,
+	[ICONST_3]        = op_nop,
+	[ICONST_4]        = op_nop,
+	[ICONST_5]        = op_nop,
+	[LCONST_0]        = op_nop,
+	[LCONST_1]        = op_nop,
+	[FCONST_0]        = op_nop,
+	[FCONST_1]        = op_nop,
+	[FCONST_2]        = op_nop,
+	[DCONST_0]        = op_nop,
+	[DCONST_1]        = op_nop,
+	[BIPUSH]          = op_bipush,
+	[SIPUSH]          = op_sipush,
+	[LDC]             = op_nop,
+	[LDC_W]           = op_nop,
+	[LDC2_W]          = op_nop,
+	[ILOAD]           = op_nop,
+	[LLOAD]           = op_nop,
+	[FLOAD]           = op_nop,
+	[DLOAD]           = op_nop,
+	[ALOAD]           = op_nop,
+	[ILOAD_0]         = op_nop,
+	[ILOAD_1]         = op_iload_1,
+	[ILOAD_2]         = op_iload_2,
+	[ILOAD_3]         = op_iload_3,
+	[LLOAD_0]         = op_nop,
+	[LLOAD_1]         = op_nop,
+	[LLOAD_2]         = op_nop,
+	[LLOAD_3]         = op_nop,
+	[FLOAD_0]         = op_nop,
+	[FLOAD_1]         = op_nop,
+	[FLOAD_2]         = op_nop,
+	[FLOAD_3]         = op_nop,
+	[DLOAD_0]         = op_nop,
+	[DLOAD_1]         = op_nop,
+	[DLOAD_2]         = op_nop,
+	[DLOAD_3]         = op_nop,
+	[ALOAD_0]         = op_nop,
+	[ALOAD_1]         = op_nop,
+	[ALOAD_2]         = op_nop,
+	[ALOAD_3]         = op_nop,
+	[IALOAD]          = op_nop,
+	[LALOAD]          = op_nop,
+	[FALOAD]          = op_nop,
+	[DALOAD]          = op_nop,
+	[AALOAD]          = op_nop,
+	[BALOAD]          = op_nop,
+	[CALOAD]          = op_nop,
+	[SALOAD]          = op_nop,
+	[ISTORE]          = op_nop,
+	[LSTORE]          = op_nop,
+	[FSTORE]          = op_nop,
+	[DSTORE]          = op_nop,
+	[ASTORE]          = op_nop,
+	[ISTORE_0]        = op_nop,
+	[ISTORE_1]        = op_istore_1,
+	[ISTORE_2]        = op_istore_2,
+	[ISTORE_3]        = op_istore_3,
+	[LSTORE_0]        = op_nop,
+	[LSTORE_1]        = op_nop,
+	[LSTORE_2]        = op_nop,
+	[LSTORE_3]        = op_nop,
+	[FSTORE_0]        = op_nop,
+	[FSTORE_1]        = op_nop,
+	[FSTORE_2]        = op_nop,
+	[FSTORE_3]        = op_nop,
+	[DSTORE_0]        = op_nop,
+	[DSTORE_1]        = op_nop,
+	[DSTORE_2]        = op_nop,
+	[DSTORE_3]        = op_nop,
+	[ASTORE_0]        = op_nop,
+	[ASTORE_1]        = op_nop,
+	[ASTORE_2]        = op_nop,
+	[ASTORE_3]        = op_nop,
+	[IASTORE]         = op_nop,
+	[LASTORE]         = op_nop,
+	[FASTORE]         = op_nop,
+	[DASTORE]         = op_nop,
+	[AASTORE]         = op_nop,
+	[BASTORE]         = op_nop,
+	[CASTORE]         = op_nop,
+	[SASTORE]         = op_nop,
+	[POP]             = op_pop,
+	[POP2]            = op_pop2,
+	[DUP]             = op_nop,
+	[DUP_X1]          = op_nop,
+	[DUP_X2]          = op_nop,
+	[DUP2]            = op_nop,
+	[DUP2_X1]         = op_nop,
+	[DUP2_X2]         = op_nop,
+	[SWAP]            = op_nop,
+	[IADD]            = op_iadd,
+	[LADD]            = op_nop,
+	[FADD]            = op_nop,
+	[DADD]            = op_nop,
+	[ISUB]            = op_nop,
+	[LSUB]            = op_nop,
+	[FSUB]            = op_nop,
+	[DSUB]            = op_nop,
+	[IMUL]            = op_nop,
+	[LMUL]            = op_nop,
+	[FMUL]            = op_nop,
+	[DMUL]            = op_nop,
+	[IDIV]            = op_nop,
+	[LDIV]            = op_nop,
+	[FDIV]            = op_nop,
+	[DDIV]            = op_nop,
+	[IREM]            = op_nop,
+	[LREM]            = op_nop,
+	[FREM]            = op_nop,
+	[DREM]            = op_nop,
+	[INEG]            = op_nop,
+	[LNEG]            = op_nop,
+	[FNEG]            = op_nop,
+	[DNEG]            = op_nop,
+	[ISHL]            = op_nop,
+	[LSHL]            = op_nop,
+	[ISHR]            = op_nop,
+	[LSHR]            = op_nop,
+	[IUSHR]           = op_nop,
+	[LUSHR]           = op_nop,
+	[IAND]            = op_nop,
+	[LAND]            = op_nop,
+	[IOR]             = op_nop,
+	[LOR]             = op_nop,
+	[IXOR]            = op_nop,
+	[LXOR]            = op_nop,
+	[IINC]            = op_nop,
+	[I2L]             = op_nop,
+	[I2F]             = op_nop,
+	[I2D]             = op_nop,
+	[L2I]             = op_nop,
+	[L2F]             = op_nop,
+	[L2D]             = op_nop,
+	[F2I]             = op_nop,
+	[F2L]             = op_nop,
+	[F2D]             = op_nop,
+	[D2I]             = op_nop,
+	[D2L]             = op_nop,
+	[D2F]             = op_nop,
+	[I2B]             = op_nop,
+	[I2C]             = op_nop,
+	[I2S]             = op_nop,
+	[LCMP]            = op_nop,
+	[FCMPL]           = op_nop,
+	[FCMPG]           = op_nop,
+	[DCMPL]           = op_nop,
+	[DCMPG]           = op_nop,
+	[IFEQ]            = op_nop,
+	[IFNE]            = op_nop,
+	[IFLT]            = op_nop,
+	[IFGE]            = op_nop,
+	[IFGT]            = op_nop,
+	[IFLE]            = op_nop,
+	[IF_ICMPEQ]       = op_nop,
+	[IF_ICMPNE]       = op_nop,
+	[IF_ICMPLT]       = op_nop,
+	[IF_ICMPGE]       = op_nop,
+	[IF_ICMPGT]       = op_nop,
+	[IF_ICMPLE]       = op_nop,
+	[IF_ACMPEQ]       = op_nop,
+	[IF_ACMPNE]       = op_nop,
+	[GOTO]            = op_nop,
+	[JSR]             = op_nop,
+	[RET]             = op_nop,
+	[TABLESWITCH]     = op_nop,
+	[LOOKUPSWITCH]    = op_nop,
+	[IRETURN]         = op_ireturn,
+	[LRETURN]         = op_nop,
+	[FRETURN]         = op_nop,
+	[DRETURN]         = op_nop,
+	[ARETURN]         = op_nop,
+	[RETURN]          = op_nop,
+	[GETSTATIC]       = op_nop,
+	[PUTSTATIC]       = op_nop,
+	[GETFIELD]        = op_nop,
+	[PUTFIELD]        = op_nop,
+	[INVOKEVIRTUAL]   = op_nop,
+	[INVOKESPECIAL]   = op_nop,
+	[INVOKESTATIC]    = op_nop,
+	[INVOKEINTERFACE] = op_nop,
+	[INVOKEDYNAMIC]   = op_nop,
+	[NEW]             = op_nop,
+	[NEWARRAY]        = op_nop,
+	[ANEWARRAY]       = op_nop,
+	[ARRAYLENGTH]     = op_nop,
+	[ATHROW]          = op_nop,
+	[CHECKCAST]       = op_nop,
+	[INSTANCEOF]      = op_nop,
+	[MONITORENTER]    = op_nop,
+	[MONITOREXIT]     = op_nop,
+	[WIDE]            = op_nop,
+	[MULTIANEWARRAY]  = op_nop,
+	[IFNULL]          = op_nop,
+	[IFNONNULL]       = op_nop,
+	[GOTO_W]          = op_nop,
+	[JSR_W]           = op_nop,
+};
+
 /* Get number of operands of a given instruction */
 int getNoperands(U1 instruction) {
 	return noperands[instruction];
@@ -426,11 +646,111 @@ char *getOpName(U1 instruct) {
     return instrnames[instruct];
 }
 
+/* Get instruct. */
+INSTRUCT getInstruct(U1 instruction) {
+    return instrtab[instruction];
+}
+
+/* nop: do nothing. */
 static int op_nop(Frame *frame) {
     UNUSED(frame);
     return NO_RETURN;
 }
 
+/* pop: pop the top op statck value. */
 static int op_pop(Frame *frame) {
+    frameStatckPop(frame);
     return NO_RETURN;
+}
+
+/* pop: pop the top one or tow op statck values. */
+static int op_pop2(Frame *frame) {
+    frameStatckPop(frame);
+    frameStatckPop(frame);
+    return NO_RETURN;
+}
+
+/* bipush: push one byte to op stack. */
+static int op_bipush(Frame *frame) {
+    Value v;
+    v.i = frame->code->code[frame->pc++];
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* sipush: push a short value into op statck. */
+static int op_sipush(Frame *frame) {
+    Value v;
+    U2 u;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    v.i = (I2)u;
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* istore_1: store int into local variable. */
+static int op_istore_1(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 1, v);
+    return NO_RETURN;
+}
+
+/* istore_2: store int into local variable. */
+static int op_istore_2(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 2, v);
+    return NO_RETURN;
+}
+
+
+/* istore_3: store int into local variable. */
+static int op_istore_3(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 3, v);
+    return NO_RETURN;
+}
+
+/* load_1: load int from local variable. */
+static int op_iload_1(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 1);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* load_2: load int from local variable. */
+static int op_iload_2(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 2);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* load_3: load int from local variable. */
+static int op_iload_3(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 3);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* iadd: add int. */
+static int op_iadd(Frame *frame) {
+    Value v1, v2;
+    v1 = frameStatckPop(frame);
+    v2 = frameStatckPop(frame);
+    v1.i += v2.i;
+    frameStatckPush(frame, v1);
+    return NO_RETURN;
+}
+
+/* ireturn: return something from method. */
+static int op_ireturn(Frame *frame) {
+    UNUSED(frame);
+    return RETURN_OPERAND;
 }

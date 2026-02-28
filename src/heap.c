@@ -6,7 +6,7 @@ static struct Heap *heapStatck = NULL;
 
 /* Allocate heap entry and push into heap stack.
  * Return the heap entry. */
-Heap *halloc(I4 nmemb, size_t size) {
+Heap *heapNew(I4 nmemb, size_t size) {
     Heap *entry;
     void *obj;
 

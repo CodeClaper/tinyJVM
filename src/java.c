@@ -46,6 +46,20 @@ oom:
 }
 
 int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {
+    MethodInfo *method;
+    AttributeInfo *attr;
+    Code_attribute *code;
+    Frame *newframe;
+    
+    method = classGetMethod(class, name, descriptor);
+    if (method == NULL) return ERR;
+    attr = classGetAttr(method->attributes, method->attribute_count, ATT_Code);
+    if (attr == NULL) return ERR;
+    code = &attr->info.code;
+    newframe = framePush(class, code->max_locals, code->max_stack, code);
+    if (newframe == NULL) error("Out of memory"); 
+    
+    framePop();
     return 0;
 }
 

@@ -498,6 +498,7 @@ char *classGetClassName(ClassFile *class, U2 index);
 double classGetDouble(ClassFile *class, U2 index);
 char *classGetNameAndTypeForName(ClassFile *class, U2 index);
 char *classGetNameAndTypeForType(ClassFile *class, U2 index);
+MethodInfo *classGetMethod(ClassFile *class, char *name, char *descr);
 AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag);
 bool classIsTopClass(ClassFile *class);
 char *classGetConstantTagName(U1 tag);

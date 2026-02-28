@@ -8,4 +8,4 @@ typedef struct Heap {
     U2              count;
 } Heap;
 
-Heap *halloc(I4 nmemb, size_t size);
+Heap *heapNew(I4 nmemb, size_t size);

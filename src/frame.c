@@ -42,6 +42,7 @@ int framePop(void) {
     sfree(frame->locals);
     sfree(frame->stacks);
     sfree(frame);
+
     return 0;
 }
 

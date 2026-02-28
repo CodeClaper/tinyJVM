@@ -1,3 +1,5 @@
+#ifndef __FRAME__
+#define __FRAME__
 #include "java.h"
 
 typedef struct Frame {
@@ -19,4 +21,6 @@ void frameStatckPush(Frame *frame, Value value);
 Value frameStatckPop(Frame *frame);
 void frameLocalStore(Frame *frame, U2 i, Value v);
 Value frameLocalLoad(Frame *frame, U2 i);
+
+#endif
 

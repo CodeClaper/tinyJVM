@@ -1,4 +1,7 @@
 #include "c.h"
+#include "frame.h"
+
+typedef int (*INSTRUCT)(Frame *Frame);
 
 typedef enum OpReturn {
     NO_RETURN       = 0,
@@ -239,3 +242,4 @@ typedef enum Instruction {
 
 int getNoperands(U1 instruction);
 char *getOpName(U1 instruct);
+INSTRUCT getInstruct(U1 instruction);

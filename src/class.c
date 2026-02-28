@@ -921,6 +921,18 @@ char *classGetNameAndTypeForType(ClassFile *class, U2 index) {
     return classGetUtf8(class, class->constant_pool[index]->info.nametype_info.descriptor_index);
 }
 
+/* Get method. */
+MethodInfo *classGetMethod(ClassFile *class, char *name, char *descr) {
+    for (U2 i = 0; i < class->method_count; i++) {
+        MethodInfo *method = class->methods[i];
+        if (
+            strcmp(name, classGetUtf8(class, method->name_index)) == 0 && 
+            strcmp(descr, classGetUtf8(class, method->descriptor_index)) == 0
+        ) return method;
+    }
+    return NULL;
+}
+
 /* Get class attr by tag. 
  * Return NULL if not found. */
 AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag) {
