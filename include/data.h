@@ -14,14 +14,6 @@ typedef struct JavaStates {
     ClassFile       *classes;
 } JavaStates;
 
-typedef union Value {
-    I4              i;
-    I8              l;
-    float           f;
-    double          d;
-} Value;
-
-
 typedef struct Frame {
     struct Frame                *next;
     struct ClassFile            *class;
@@ -34,6 +26,20 @@ typedef struct Frame {
     U2                          pc;
 } Frame;
 
+typedef struct Heap {
+    struct Heap     *prev, *next;
+    void            *obj;
+    I4              nmemb;
+    U2              count;
+} Heap;
+
+typedef union Value {
+    I4              i;
+    I8              l;
+    float           f;
+    double          d;
+    Heap            *h;
+} Value;
 
 extern struct JavaStates javaStates; /* server global state */
 

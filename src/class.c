@@ -932,6 +932,18 @@ MethodInfo *classGetMethod(ClassFile *class, char *name, char *descr) {
     return NULL;
 }
 
+/* Get field. */
+FieldInfo *classGetField(ClassFile *class, char *name, char *descr) {
+    for (U2 i = 0; i < class->fields_count; i++) {
+        FieldInfo *field = class->fields[i];
+        if (
+            strcmp(name, classGetUtf8(class, field->name_index)) == 0 && 
+            strcmp(descr, classGetUtf8(class, field->descriptor_index)) == 0
+        ) return field;
+    }
+    return NULL;
+}
+
 /* Get class attr by tag. 
  * Return NULL if not found. */
 AttributeInfo *classGetAttr(AttributeInfo **attrs, U2 count, AttributeTag tag) {
