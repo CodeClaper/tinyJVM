@@ -1,6 +1,9 @@
+#include <stdlib.h>
 #include "instruct.h"
 #include "frame.h"
-#include "java.h"
+#include "method.h"
+#include "native.h"
+#include "util.h"
 
 #define OP_WIDE         -1
 #define OP_TABLESWITCH  -2
@@ -18,6 +21,7 @@ static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
 static int op_iadd(Frame *frame);
+static int op_invokevirtual(Frame *frame);
 static int op_ireturn(Frame *frame);
 
 static int noperands[] = {
@@ -38,7 +42,7 @@ static int noperands[] = {
 	[DCONST_0]        = 0,
 	[DCONST_1]        = 0,
 	[BIPUSH]          = 1,
-	[SIPUSH]          = 2,
+[SIPUSH]          = 2,
 	[LDC]             = 1,
 	[LDC_W]           = 2,
 	[LDC2_W]          = 2,
@@ -614,7 +618,7 @@ static INSTRUCT instrtab[] = {
 	[PUTSTATIC]       = op_nop,
 	[GETFIELD]        = op_nop,
 	[PUTFIELD]        = op_nop,
-	[INVOKEVIRTUAL]   = op_nop,
+	[INVOKEVIRTUAL]   = op_invokevirtual,
 	[INVOKESPECIAL]   = op_nop,
 	[INVOKESTATIC]    = op_nop,
 	[INVOKEINTERFACE] = op_nop,
@@ -746,6 +750,32 @@ static int op_iadd(Frame *frame) {
     v2 = frameStatckPop(frame);
     v1.i += v2.i;
     frameStatckPush(frame, v1);
+    return NO_RETURN;
+}
+
+/* invokevirtual: invoke instance method. */
+static int op_invokevirtual(Frame *frame) {
+    U2 u;
+    ClassFile *class;
+    NativeClassType ntype;
+    CONSTANT_Methodref_info *method_ref;
+    char *classname, *name, *type;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    method_ref = &frame->class->constant_pool[u]->info.methodref_info;
+    classname = classGetClassName(frame->class, method_ref->class_index);
+    name = classGetNameAndTypeForName(frame->class, method_ref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, method_ref->name_type_index);
+    
+    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
+        if (nativeMethodCall(frame, ntype, name, type) == ERR) 
+            error("error invoking native method %s", name);
+    } else if ((class = loadClass(classname)) != NULL) {
+        if (methodCall(class, frame, name, type, ACC_METHOD_STATIC) == ERR)
+            error("cound not find method %s", name);
+    } else error("could not load class %s", classname);
+
     return NO_RETURN;
 }
 

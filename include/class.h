@@ -487,7 +487,6 @@ typedef struct StackMapFrame {
     VerificationTypeInfo    **locals;
 } StackMapFrame;
 
-
 ClassFile *loadClass(char *class_name);
 char *classGetUtf8(ClassFile *class, U2 index);
 char *classGetString(ClassFile *class, U2 index);

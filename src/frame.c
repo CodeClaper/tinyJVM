@@ -1,5 +1,5 @@
 #include "frame.h"
-#include "java.h"
+#include "data.h"
 #include "mmr.h"
 #include "util.h"
 
@@ -66,3 +66,5 @@ void frameLocalStore(Frame *frame, U2 i, Value v) {
 Value frameLocalLoad(Frame *frame, U2 i) {
     return frame->locals[i];
 }
+
+
