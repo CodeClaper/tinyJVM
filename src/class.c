@@ -1070,10 +1070,12 @@ static FILE *getFile(char *class_name) {
 
     for (int i = 0; i < javaStates.num_class_path; i++) {
         size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
+        char last = *(javaStates.class_path[i] + strlen(javaStates.class_path[i]) - 1);
         filename = salloc(size);
         if (filename == NULL) 
             error("Out of memory");
-        sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
+        if (last == '/') sprintf(filename, "%s%s.class", javaStates.class_path[i], class_name);
+        else sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
 		if ((fp = fopen(filename, "r")) != NULL) {
 			sfree(filename);
 			break;
@@ -1082,7 +1084,7 @@ static FILE *getFile(char *class_name) {
     }
 
     if (fp == NULL) 
-        error("Not found class file: %s", class_name);
+        error("Not found class file: %s.class", class_name);
     return fp;
 }
 
