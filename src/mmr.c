@@ -1,9 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "mmr.h"
-#include "c.h"
-#include "java.h"
-#include "util.h"
 
 void *salloc(size_t size) {
     void *p = malloc(size);

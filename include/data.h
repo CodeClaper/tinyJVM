@@ -34,4 +34,7 @@ typedef struct Frame {
     U2                          pc;
 } Frame;
 
+
+extern struct JavaStates javaStates; /* server global state */
+
 #endif

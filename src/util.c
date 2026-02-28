@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include "util.h"
-#include "java.h"
+#include "data.h"
 
 /* Case to short., */
 I2 castShort(U1 high_byte, U2 low_byte) {

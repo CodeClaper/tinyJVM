@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "javap.h"
-#include "java.h"
 #include "c.h"
 #include "mmr.h"
 #include "util.h"

@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "java.h"
 #include "c.h"
 #include "mmr.h"
 #include "util.h"
 #include "frame.h"
 #include "instruct.h"
+#include "method.h"
+#include "native.h"
 
 struct JavaStates javaStates;
 

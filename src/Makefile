@@ -22,7 +22,7 @@ ${JAVA}: ${JAVAOBJS}
 ${JAVAP}: ${JAVAPOBJS}
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h $(includedir)/frame.h $(includedir)/heap.h $(includedir)/data.h
+java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h $(includedir)/frame.h $(includedir)/heap.h $(includedir)/data.h $(includedir)/native.h $(includedir)/method.h
 javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h
 class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/instruct.h
 instruct.o:	$(includedir)/instruct.h $(includedir)/c.h $(includedir)/frame.h

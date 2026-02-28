@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include "class.h"
 #include "mmr.h"
-#include "java.h"
 #include "util.h"
 #include "instruct.h"
 
