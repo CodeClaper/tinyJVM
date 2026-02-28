@@ -94,7 +94,7 @@ void error(char *format, ...) {
     va_start(ap, format);
     vsnprintf(message, len, format, ap);
     va_end(ap);
-    fprintf(stderr, "%s\n", message);
+    fprintf(stderr, "Error: %s\n", message);
 
     exit(1);
 }

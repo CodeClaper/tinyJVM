@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include "instruct.h"
+#include "data.h"
+#include "class.h"
 #include "frame.h"
 #include "method.h"
 #include "native.h"
@@ -21,6 +23,7 @@ static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
 static int op_iadd(Frame *frame);
+static int op_getstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
 static int op_ireturn(Frame *frame);
 
@@ -614,7 +617,7 @@ static INSTRUCT instrtab[] = {
 	[DRETURN]         = op_nop,
 	[ARETURN]         = op_nop,
 	[RETURN]          = op_nop,
-	[GETSTATIC]       = op_nop,
+	[GETSTATIC]       = op_getstatic,
 	[PUTSTATIC]       = op_nop,
 	[GETFIELD]        = op_nop,
 	[PUTFIELD]        = op_nop,
@@ -655,9 +658,39 @@ INSTRUCT getInstruct(U1 instruction) {
     return instrtab[instruction];
 }
 
+static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *fieldref, Heap **v) {
+    NativeClassType ntype;
+    FieldInfo *field;
+    U2 index, i;
+    char *classname, *name, *type;
+
+    classname = classGetClassName(class, fieldref->class_index);
+    name = classGetNameAndTypeForName(class, fieldref->name_type_index);
+    type = classGetNameAndTypeForName(class, fieldref->name_type_index);
+    
+    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
+
+    } else if (
+        (class = loadClass(classname)) != NULL && 
+        (field = classGetField(class, name, type)) != NULL
+    ) {
+        index = 0;
+        for (i = 0; i < field->attribute_count;i++) {
+            if (field->attributes[i]->tag == ATT_ConstantValue) {
+                index = field->attributes[i]->info.constantvalue.constantvalue_index;
+                break;
+            }
+        }
+        if (index != 0) return class->constant_pool[index];
+    }
+    error("could not resolve field.");
+    return NULL;
+}
+
 /* nop: do nothing. */
 static int op_nop(Frame *frame) {
     UNUSED(frame);
+    error("instruction %s not implememnted (yet).", getOpName(frame->code->code[frame->pc - 1]));
     return NO_RETURN;
 }
 
@@ -750,6 +783,38 @@ static int op_iadd(Frame *frame) {
     v2 = frameStatckPop(frame);
     v1.i += v2.i;
     frameStatckPush(frame, v1);
+    return NO_RETURN;
+}
+
+/* getstatic: get static field. */
+static int op_getstatic(Frame *frame) {
+    U2 u;
+    CONSTANT_Fieldref_info *fieldref;
+    ConstantPoolInfo *cp;
+    Value v;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
+    cp = resolveField(frame->class, fieldref, &v.h);
+    if (cp != NULL) {
+        switch (cp->tag) {
+            case CONSTANT_Integer:
+                v.i = castInt(cp->info.integer_info.bytes);
+                break;
+            case CONSTANT_Long:
+                v.l = castLong(cp->info.long_info.high_bytes, cp->info.long_info.low_bytes);
+                break;
+            case CONSTANT_Float:
+                v.f = castFloat(cp->info.float_info.bytes);
+                break;
+            case CONSTANT_Double:
+                v.d = castDouble(cp->info.double_info.high_bytes, cp->info.double_info.low_bytes);
+                break;
+            case CONSTANT_String:
+        }
+    }
+    frameStatckPush(frame, v);
     return NO_RETURN;
 }
 
