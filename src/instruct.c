@@ -1,7 +1,9 @@
 #include <stdlib.h>
+#include <string.h>
 #include "instruct.h"
 #include "data.h"
 #include "class.h"
+#include "clazz.h"
 #include "frame.h"
 #include "method.h"
 #include "native.h"
@@ -28,6 +30,7 @@ static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
+static int op_new(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
 
@@ -630,7 +633,7 @@ static INSTRUCT instrtab[] = {
 	[INVOKESTATIC]    = op_nop,
 	[INVOKEINTERFACE] = op_nop,
 	[INVOKEDYNAMIC]   = op_nop,
-	[NEW]             = op_nop,
+	[NEW]             = op_new,
 	[NEWARRAY]        = op_nop,
 	[ANEWARRAY]       = op_nop,
 	[ARRAYLENGTH]     = op_nop,
@@ -895,6 +898,29 @@ static int op_invokevirtual(Frame *frame) {
     } else error("could not load class %s", classname);
 
     return NO_RETURN;
+}
+
+/* new: new an Object. */
+static int op_new(Frame *frame) {
+    Value v;
+    U2 index = 0;
+    char *classname;
+    Clazz *clazz;
+    JavaObjectHeader *obj;
+    
+    index = frame->code->code[frame->pc++] << 8 | frame->code->code[frame->pc++];
+    classname = classGetClassName(frame->class, index);
+    clazz = clazzLoad(classname);
+    
+    obj = salloc(clazz->instanceSize);
+    memset(obj, 0, clazz->instanceSize);
+    obj->clazz = clazz;
+    
+    v.h = heapNew(0, 0);
+    v.h->obj = obj;
+
+    frameStatckPush(frame, v);
+    return RETURN_OPERAND;
 }
 
 /* ireturn: return something from method. */
