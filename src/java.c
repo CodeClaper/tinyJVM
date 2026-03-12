@@ -56,7 +56,7 @@ static void java(void) {
     if (class == NULL) error("Load class fail.");
     frame = framePush(class, 0, 1, NULL);
     if (methodCall(class, frame, "main", "([Ljava/lang/String;)V", (ACC_METHOD_PUBLIC | ACC_METHOD_STATIC)) == ERR) 
-        error("Could not find main method.");
+        error("Main method not found in class A, please define the main method as: \n   public static void main(String[] args)");
 }
 
 static void afterexist(void) {
