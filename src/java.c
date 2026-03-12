@@ -32,7 +32,9 @@ oom:
 static void init(int argc, char *argv[]) {
     int i;
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-cp") == 0) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) 
+            usage();
+        else if (strcmp(argv[i], "-cp") == 0) {
             if (++i > argc) usage();
             else addClassPath(argv[i]);
         } else {
@@ -46,7 +48,6 @@ oom:
     seterror("Out of memory");
     exit(EXIT_FAILURE);
 }
-
 
 static void java(void) {
     ClassFile *class;
