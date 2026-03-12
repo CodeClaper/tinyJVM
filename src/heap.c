@@ -21,9 +21,9 @@ Heap *heapNew(I4 nmemb, size_t size) {
 
     entry->nmemb = nmemb;
     entry->count = 0;
-    entry->obj   = obj;
-    entry->prev  = NULL;
-    entry->next  = heapStatck;
+    entry->obj = obj;
+    entry->prev = NULL;
+    entry->next = heapStatck;
     if (heapStatck) heapStatck->prev = entry;
     heapStatck = entry;
 

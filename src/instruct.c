@@ -6,6 +6,8 @@
 #include "method.h"
 #include "native.h"
 #include "util.h"
+#include "mmr.h"
+#include "heap.h"
 
 #define OP_WIDE         -1
 #define OP_TABLESWITCH  -2
@@ -23,9 +25,11 @@ static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
 static int op_iadd(Frame *frame);
+static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
 static int op_ireturn(Frame *frame);
+static int op_return(Frame *frame);
 
 static int noperands[] = {
 	[NOP]             = 0,
@@ -45,7 +49,7 @@ static int noperands[] = {
 	[DCONST_0]        = 0,
 	[DCONST_1]        = 0,
 	[BIPUSH]          = 1,
-[SIPUSH]          = 2,
+    [SIPUSH]          = 2,
 	[LDC]             = 1,
 	[LDC_W]           = 2,
 	[LDC2_W]          = 2,
@@ -457,7 +461,7 @@ static INSTRUCT instrtab[] = {
 	[DCONST_1]        = op_nop,
 	[BIPUSH]          = op_bipush,
 	[SIPUSH]          = op_sipush,
-	[LDC]             = op_nop,
+	[LDC]             = op_ldc,
 	[LDC_W]           = op_nop,
 	[LDC2_W]          = op_nop,
 	[ILOAD]           = op_nop,
@@ -616,7 +620,7 @@ static INSTRUCT instrtab[] = {
 	[FRETURN]         = op_nop,
 	[DRETURN]         = op_nop,
 	[ARETURN]         = op_nop,
-	[RETURN]          = op_nop,
+	[RETURN]          = op_return,
 	[GETSTATIC]       = op_getstatic,
 	[PUTSTATIC]       = op_nop,
 	[GETFIELD]        = op_nop,
@@ -658,18 +662,52 @@ INSTRUCT getInstruct(U1 instruction) {
     return instrtab[instruction];
 }
 
-static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *fieldref, Heap **v) {
+/* Resolve constant value. */
+static Value resolveConstant(ClassFile *class, U2 index) {
+    Value v;
+    char *s;
+
+    switch (class->constant_pool[index]->tag) {
+        case CONSTANT_Integer:
+            v.i = classGetInteger(class, index);
+            break;
+        case CONSTANT_Float:
+            v.f = classGetFloat(class, index);
+            break;
+        case CONSTANT_Long:
+            v.l = classGetLong(class, index);
+            break;
+        case CONSTANT_Double:
+            v.d = classGetDouble(class, index);
+            break;
+        case CONSTANT_String:
+            s = classGetString(class,  index);       
+            v.h = heapNew(0, 0);
+            v.h->obj = sstrdup(s);
+            break;
+    }
+
+    return v;
+}
+
+/* Resolve field reference. */
+static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *fieldref, Heap **h) {
     NativeClassType ntype;
     FieldInfo *field;
     U2 index, i;
     char *classname, *name, *type;
 
+    if (h != NULL) *h = NULL;
     classname = classGetClassName(class, fieldref->class_index);
     name = classGetNameAndTypeForName(class, fieldref->name_type_index);
-    type = classGetNameAndTypeForName(class, fieldref->name_type_index);
+    type = classGetNameAndTypeForType(class, fieldref->name_type_index);
     
     if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
-
+        if (h != NULL) {
+            (*h) = heapNew(0, 0);
+            (*h)->obj = nativeJavaObj(ntype, name, type);
+        }
+        return NULL;
     } else if (
         (class = loadClass(classname)) != NULL && 
         (field = classGetField(class, name, type)) != NULL
@@ -681,7 +719,8 @@ static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *
                 break;
             }
         }
-        if (index != 0) return class->constant_pool[index];
+        if (index != 0) 
+            return class->constant_pool[index];
     }
     error("could not resolve field.");
     return NULL;
@@ -786,6 +825,17 @@ static int op_iadd(Frame *frame) {
     return NO_RETURN;
 }
 
+/* ldc: push item from run-time constant pool. */
+static int op_ldc(Frame *frame) {
+    Value v;
+    U2 i;
+
+    i = frame->code->code[frame->pc++];
+    v = resolveConstant(frame->class, i);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
 /* getstatic: get static field. */
 static int op_getstatic(Frame *frame) {
     U2 u;
@@ -812,6 +862,9 @@ static int op_getstatic(Frame *frame) {
                 v.d = castDouble(cp->info.double_info.high_bytes, cp->info.double_info.low_bytes);
                 break;
             case CONSTANT_String:
+                v.h = heapNew(0, 0);
+                v.h->obj = sstrdup(classGetUtf8(frame->class, cp->info.string_info.string_index));
+                break;
         }
     }
     frameStatckPush(frame, v);
@@ -848,4 +901,10 @@ static int op_invokevirtual(Frame *frame) {
 static int op_ireturn(Frame *frame) {
     UNUSED(frame);
     return RETURN_OPERAND;
+}
+
+/* return: return void from method. */
+static int op_return(Frame *frame) {
+    UNUSED(frame);
+    return RETURN_VOID;
 }

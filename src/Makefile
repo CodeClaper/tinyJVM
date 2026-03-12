@@ -11,7 +11,7 @@ headers = $(shell find $(includedir) -name "*.h")
 JAVA  		:= java
 JAVAP 		:= javap
 JAVAOBJS 	:= java.o class.o mmr.o util.o instruct.o frame.o heap.o method.o native.o
-JAVAPOBJS 	:= javap.o class.o mmr.o util.o instruct.o frame.o method.o native.o
+JAVAPOBJS 	:= javap.o class.o mmr.o util.o instruct.o frame.o heap.o method.o native.o
 INC 		:= -I$(includedir)
 
 all: ${JAVA} ${JAVAP}
@@ -23,7 +23,7 @@ ${JAVAP}: ${JAVAPOBJS}
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 java.o: 	$(includedir)/java.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h $(includedir)/frame.h $(includedir)/heap.h $(includedir)/data.h $(includedir)/native.h $(includedir)/method.h
-javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h
+javap.o: 	$(includedir)/javap.h $(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/util.h $(includedir)/instruct.h $(includedir)/heap.h
 class.o: 	$(includedir)/class.h $(includedir)/c.h $(includedir)/mmr.h $(includedir)/instruct.h
 instruct.o:	$(includedir)/instruct.h $(includedir)/c.h $(includedir)/frame.h
 frame.o:	$(includedir)/frame.h $(includedir)/c.h $(includedir)/java.h $(includedir)/mmr.h $(includedir)/util.h

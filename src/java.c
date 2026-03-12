@@ -60,7 +60,8 @@ static void java(void) {
 }
 
 static void afterexist(void) {
-    fprintf(stderr, "%s\n", javaStates.error);
+    if (strcmp(javaStates.error, "") != 0)
+        fprintf(stderr, "%s\n", javaStates.error);
 }
 
 int main(int argc, char *argv[]) {
