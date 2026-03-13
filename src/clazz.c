@@ -17,6 +17,7 @@ static U4 getTypeSize(char type) {
     }
 }
 
+
 /* Clac instance fields size. */
 static U4 clazzClacInstanceFiledsSize(Clazz *clazz) {
     U2 i;
@@ -58,6 +59,12 @@ static U4 clazzCalcInstanceSize(Clazz *clazz) {
     return (size + 7) & ~7;
 }
 
+/* Push into stack. */
+static void clazzPushStack(Clazz *clazz) {
+    clazz->next = clazzStack;
+    clazzStack = clazz;
+}
+
 /* Find clazz in cache.
  * Return NULL if not foud. */
 static Clazz *clazzFindInCache(char *classname) {
@@ -85,10 +92,22 @@ static Clazz *clazzLoadFile(char *classname) {
     c->className = sstrdup(classname);
     c->super = clazzLoadFileViaIndex(class, class->super_class);
     c->instanceSize = clazzCalcInstanceSize(c);
-    c->next = clazzStack;
-    clazzStack = c;
+    c->initial = 0;
+    clazzPushStack(c);
 
     return c;
+}
+
+
+/* Load the Object. */
+void clazzLoadObject() {
+    Clazz *obj = salloc(sizeof(Clazz));
+    memset(obj, 0, sizeof(Clazz));
+    obj->class = classLoadObject();
+    obj->className = sstrdup("java/lang/Object");
+    obj->super = NULL;
+    obj->instanceSize = 0;
+    clazzPushStack(obj);
 }
 
 /* Load the clazz. */
@@ -97,3 +116,4 @@ Clazz *clazzLoad(char *classname) {
     if (c != NULL) return c;
     else return clazzLoadFile(classname); 
 }
+

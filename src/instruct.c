@@ -30,7 +30,9 @@ static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
+static int op_invokespecial(Frame *frame);
 static int op_new(Frame *frame);
+static int op_dup(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
 
@@ -535,7 +537,7 @@ static INSTRUCT instrtab[] = {
 	[SASTORE]         = op_nop,
 	[POP]             = op_pop,
 	[POP2]            = op_pop2,
-	[DUP]             = op_nop,
+	[DUP]             = op_dup,
 	[DUP_X1]          = op_nop,
 	[DUP_X2]          = op_nop,
 	[DUP2]            = op_nop,
@@ -629,7 +631,7 @@ static INSTRUCT instrtab[] = {
 	[GETFIELD]        = op_nop,
 	[PUTFIELD]        = op_nop,
 	[INVOKEVIRTUAL]   = op_invokevirtual,
-	[INVOKESPECIAL]   = op_nop,
+	[INVOKESPECIAL]   = op_invokespecial,
 	[INVOKESTATIC]    = op_nop,
 	[INVOKEINTERFACE] = op_nop,
 	[INVOKEDYNAMIC]   = op_nop,
@@ -727,6 +729,20 @@ static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *
     }
     error("could not resolve field.");
     return NULL;
+}
+
+/* Invoke <clinit>. */
+static void clinitInvoke(Clazz *clazz) {
+    Frame *frame;
+    MethodInfo *method;
+
+    if (clazz->initial) return;
+    if (clazz->super) clinitInvoke(clazz->super);
+    method = classGetMethod(clazz->class, "<clinit>", "()V");
+    if (method == NULL) return;
+    frame = framePush(clazz->class, 0, 1, NULL);
+    if (methodCall(clazz->class, frame, "<clinit>", "()V", ACC_METHOD_STATIC) == ERR) 
+        error("cound not find method <clinit>");
 }
 
 /* nop: do nothing. */
@@ -900,6 +916,11 @@ static int op_invokevirtual(Frame *frame) {
     return NO_RETURN;
 }
 
+/* invokespecial: invoke <init>, instance private method, parent method.*/
+static int op_invokespecial(Frame *frame) {
+    return NO_RETURN;
+}
+
 /* new: new an Object. */
 static int op_new(Frame *frame) {
     Value v;
@@ -911,6 +932,7 @@ static int op_new(Frame *frame) {
     index = frame->code->code[frame->pc++] << 8 | frame->code->code[frame->pc++];
     classname = classGetClassName(frame->class, index);
     clazz = clazzLoad(classname);
+    if (clazz->initial == 0) clinitInvoke(clazz);
     
     obj = salloc(clazz->instanceSize);
     memset(obj, 0, clazz->instanceSize);
@@ -920,7 +942,16 @@ static int op_new(Frame *frame) {
     v.h->obj = obj;
 
     frameStatckPush(frame, v);
-    return RETURN_OPERAND;
+    return NO_RETURN;
+}
+
+/* dup: duplicate the top stack value and push it. */
+static int op_dup(Frame *frame) {
+    Value v;
+
+    v = frame->stacks[frame->nstack];
+    frameStatckPush(frame, v);
+    return NO_RETURN;
 }
 
 /* ireturn: return something from method. */

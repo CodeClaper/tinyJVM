@@ -1117,6 +1117,18 @@ static ClassFile *getClass(char *class_name) {
     return class;
 }
 
+/* Class load the Object. */
+ClassFile *classLoadObject() {
+    ClassFile *class = salloc(sizeof(ClassFile));
+    memset(class, 0, sizeof(ClassFile));
+    class->fields_count = 0;
+    class->fields = NULL;
+    class->super_class = 0;
+    class->interfaces_count = 0;
+    class->interfaces = NULL;
+    return class;
+}
+
 /* Load class. */
 ClassFile *loadClass(char *class_name) {
     ClassFile *class = getClass(class_name);

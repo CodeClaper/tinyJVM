@@ -3,6 +3,7 @@
 #include "instruct.h"
 #include "util.h"
 
+
 /* Invoke method. */
 int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {
     MethodInfo *method;

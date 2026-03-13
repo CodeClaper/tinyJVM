@@ -8,6 +8,7 @@
 #include "instruct.h"
 #include "method.h"
 #include "native.h"
+#include "clazz.h"
 
 struct JavaStates javaStates;
 
@@ -42,7 +43,12 @@ static void init(int argc, char *argv[]) {
             if (javaStates.class_name == NULL) goto oom;;
         }
     }
-    if (javaStates.num_class_path == 0) addClassPath(".");
+
+    if (javaStates.num_class_path == 0) 
+        addClassPath(".");
+
+    /* Bootstrap the Object clazz. */
+    clazzLoadObject();
     return;
 oom:
     seterror("Out of memory");
