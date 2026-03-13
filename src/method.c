@@ -12,7 +12,7 @@ int clinitMethodCall(ClassFile *class) {
     if (class->init) return OK;
     if (class->super && clinitMethodCall(class->super) == ERR) return ERR;
     method = classGetMethod(class, "<clinit>", "()V");
-    if (method == NULL) return ERR;
+    if (method == NULL) return OK;
     frame = framePush(class, 0, 1, NULL);
     return methodCall(class, frame, "<clinit>", "()V", ACC_METHOD_STATIC); 
 }

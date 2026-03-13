@@ -9,11 +9,13 @@
 #include "instruct.h"
 #include "method.h"
 
-
 static FrameTag getFramTag(U1 val);
 static AttributeTag getAttrTag(char *attr_name);
 static int readAnnotation(FILE *fp, Annotation **annotation);
 static int readElementValues(FILE *fp, ElementValue ***p, U2 count);
+
+/* Bootstrap class is Oject. */
+static ClassFile *bootstrapClass = NULL;
 
 /* Read count bytes into buf. */
 static int readb(FILE *fp, void *buf, U4 count) {
@@ -1022,6 +1024,8 @@ static int checkClass(ClassFile *class) {
 /* Get class from cache. 
  * Return NULL if not found. */
 static ClassFile *getClassFromCache(char *class_name) {
+    if (strcmp(class_name, "java/lang/Object") == 0) 
+        return bootstrapClass;
     for (ClassFile *class = javaStates.classes; 
             class != NULL; class = class->next) {
         if (strcmp(class_name, classGetClassName(class, class->this_class))) 
@@ -1115,10 +1119,12 @@ static ClassFile *getClass(char *class_name) {
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) error("Parse class file fail. ");
+    if (class->super_class) class->super = getClass(classGetClassName(class, class->super_class));
     if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) error("Error when execute <clinit>");
 
     class->init = 1;
     class->next = javaStates.classes;
+    javaStates.classes = class;
 
     return class;
 }
@@ -1132,6 +1138,7 @@ ClassFile *classLoadObject() {
     class->super_class = 0;
     class->interfaces_count = 0;
     class->interfaces = NULL;
+    bootstrapClass = class;
     return class;
 }
 
