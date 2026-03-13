@@ -731,20 +731,6 @@ static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *
     return NULL;
 }
 
-/* Invoke <clinit>. */
-static void clinitInvoke(Clazz *clazz) {
-    Frame *frame;
-    MethodInfo *method;
-
-    if (clazz->initial) return;
-    if (clazz->super) clinitInvoke(clazz->super);
-    method = classGetMethod(clazz->class, "<clinit>", "()V");
-    if (method == NULL) return;
-    frame = framePush(clazz->class, 0, 1, NULL);
-    if (methodCall(clazz->class, frame, "<clinit>", "()V", ACC_METHOD_STATIC) == ERR) 
-        error("cound not find method <clinit>");
-}
-
 /* nop: do nothing. */
 static int op_nop(Frame *frame) {
     UNUSED(frame);
@@ -932,7 +918,6 @@ static int op_new(Frame *frame) {
     index = frame->code->code[frame->pc++] << 8 | frame->code->code[frame->pc++];
     classname = classGetClassName(frame->class, index);
     clazz = clazzLoad(classname);
-    if (clazz->initial == 0) clinitInvoke(clazz);
     
     obj = salloc(clazz->instanceSize);
     memset(obj, 0, clazz->instanceSize);

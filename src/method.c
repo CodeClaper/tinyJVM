@@ -1,8 +1,21 @@
 #include <stdlib.h>
 #include "method.h"
+#include "data.h"
 #include "instruct.h"
 #include "util.h"
 
+/* Invoke clinit method. */
+int clinitMethodCall(ClassFile *class) {
+    Frame *frame;
+    MethodInfo *method;
+
+    if (class->init) return OK;
+    if (class->super && clinitMethodCall(class->super) == ERR) return ERR;
+    method = classGetMethod(class, "<clinit>", "()V");
+    if (method == NULL) return ERR;
+    frame = framePush(class, 0, 1, NULL);
+    return methodCall(class, frame, "<clinit>", "()V", ACC_METHOD_STATIC); 
+}
 
 /* Invoke method. */
 int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {

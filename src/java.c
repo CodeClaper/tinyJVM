@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "c.h"
+#include "data.h"
 #include "mmr.h"
 #include "util.h"
 #include "frame.h"
@@ -46,6 +47,8 @@ static void init(int argc, char *argv[]) {
 
     if (javaStates.num_class_path == 0) 
         addClassPath(".");
+
+    javaStates.mode = runMode(argv[0]);
 
     /* Bootstrap the Object clazz. */
     clazzLoadObject();

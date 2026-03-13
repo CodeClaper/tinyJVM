@@ -6,7 +6,14 @@
 
 #define MAX_ERR_SIZE 256
 
+typedef enum RunMode {
+    NONE,
+    JAVA,
+    JAVAP
+} RunMode ;
+
 typedef struct JavaStates {
+    RunMode         mode;
     U2              num_class_path;
     char            **class_path;
     char            error[MAX_ERR_SIZE];

@@ -759,6 +759,7 @@ static void init(int argc, char *argv[]) {
         }
     }
     if (javaStates.num_class_path == 0) addClassPath(".");
+    javaStates.mode = runMode(argv[0]);
     return;
 oom:
     seterror("Out of memory");

@@ -3,9 +3,11 @@
 #include <string.h>
 #include <stdbool.h>
 #include "class.h"
+#include "data.h"
 #include "mmr.h"
 #include "util.h"
 #include "instruct.h"
+#include "method.h"
 
 
 static FrameTag getFramTag(U1 val);
@@ -1109,11 +1111,15 @@ static ClassFile *getClass(char *class_name) {
     if (class != NULL) return class;
     class = salloc(sizeof(ClassFile));
     if (class == NULL) error("Out of memory.");
+    memset(class, 0, sizeof(ClassFile));
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) error("Parse class file fail. ");
+    if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) error("Error when execute <clinit>");
 
+    class->init = 1;
     class->next = javaStates.classes;
+
     return class;
 }
 

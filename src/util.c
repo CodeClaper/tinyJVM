@@ -52,6 +52,12 @@ double castDouble(U4 high_bytes, U4 low_bytes) {
 	return d;
 }
 
+RunMode runMode(char *name) {
+    if (strstr(name, "javap") != NULL) return JAVAP;
+    else if (strstr(name, "java") != NULL) return JAVA;
+    else return NONE;
+}
+
 void seterror(char *format, ...) {
     size_t len;
     va_list ap;
