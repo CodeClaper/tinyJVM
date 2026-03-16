@@ -69,5 +69,5 @@ compile_commands.json
 
 compile_commands.json
 
-java
-javap
+src/java
+src/javap
