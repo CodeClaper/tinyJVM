@@ -1116,17 +1116,18 @@ static ClassFile *getClass(char *class_name) {
     class = salloc(sizeof(ClassFile));
     if (class == NULL) error("Out of memory.");
     memset(class, 0, sizeof(ClassFile));
+
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) error("Parse class file fail. ");
     if (class->super_class) class->super = getClass(classGetClassName(class, class->super_class));
     if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) error("Error when execute <clinit>");
+    fclose(fp);
 
     class->init = 1;
     class->next = javaStates.classes;
     javaStates.classes = class;
 
-    fclose(fp);
     return class;
 }
 
