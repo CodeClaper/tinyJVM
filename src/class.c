@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "class.h"
 #include "data.h"
 #include "mmr.h"
@@ -1089,8 +1090,7 @@ static FILE *getFile(char *class_name) {
         size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
         char last = *(javaStates.class_path[i] + strlen(javaStates.class_path[i]) - 1);
         filename = salloc(size);
-        if (filename == NULL) 
-            error("Out of memory");
+        if (filename == NULL) error("Out of memory");
         if (last == '/') sprintf(filename, "%s%s.class", javaStates.class_path[i], class_name);
         else sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
 		if ((fp = fopen(filename, "r")) != NULL) {
@@ -1126,6 +1126,7 @@ static ClassFile *getClass(char *class_name) {
     class->next = javaStates.classes;
     javaStates.classes = class;
 
+    fclose(fp);
     return class;
 }
 
