@@ -47,6 +47,7 @@ static int op_invokevirtual(Frame *frame);
 static int op_invokespecial(Frame *frame);
 static int op_new(Frame *frame);
 static int op_dup(Frame *frame);
+static int op_anewarray(Frame *frame);
 static int op_ifnonnull(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
@@ -652,7 +653,7 @@ static INSTRUCT instrtab[] = {
 	[INVOKEDYNAMIC]   = op_nop,
 	[NEW]             = op_new,
 	[NEWARRAY]        = op_nop,
-	[ANEWARRAY]       = op_nop,
+	[ANEWARRAY]       = op_anewarray,
 	[ARRAYLENGTH]     = op_nop,
 	[ATHROW]          = op_nop,
 	[CHECKCAST]       = op_nop,
@@ -1011,6 +1012,11 @@ static int op_getstatic(Frame *frame) {
     return NO_RETURN;
 }
 
+/* putstatic: set static field in class. */
+static int op_putstatic(Frame *frame) {
+    return NO_RETURN;
+}
+
 /* invokevirtual: invoke instance method. */
 static int op_invokevirtual(Frame *frame) {
     U2 u;
@@ -1071,7 +1077,7 @@ static int op_new(Frame *frame) {
     U2 index = 0;
     char *classname;
     Clazz *clazz;
-    JavaObjectHeader *obj;
+    JavaObject *obj;
     
     index = frame->code->code[frame->pc++] << 8 | frame->code->code[frame->pc++];
     classname = classGetClassName(frame->class, index);
@@ -1094,6 +1100,37 @@ static int op_dup(Frame *frame) {
 
     v = frame->stacks[frame->nstack];
     frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* anewarray: new an array of reference. */
+static int op_anewarray(Frame *frame) {
+    U2 u;
+    I4 count;
+    U4 size;
+    Value v, nv;
+    char *classname;
+    Clazz *clazz;
+    JavaArrayObject *array_obj;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    v = frameStatckPop(frame);
+    count = v.i;
+    if (count < 0) return ERR; // NegativeArraySizeException.
+    
+    classname = classGetClassName(frame->class, u);
+    clazz = clazzLoad(classname);
+    size = sizeof(JavaArrayObject) + count * sizeof(void *);
+
+    array_obj = salloc(size);
+    array_obj->header.clazz = clazz;
+    array_obj->length = count;
+
+    nv.h = heapNew(0, 0);
+    nv.h->obj = array_obj;
+
+    frameStatckPush(frame, nv);
     return NO_RETURN;
 }
 
