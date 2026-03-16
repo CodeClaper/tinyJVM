@@ -23,6 +23,7 @@ int initMethodCall(ClassFile *class, Frame *frame, char *name, char *descriptor,
 
     method = classGetMethod(class, name, descriptor);
     if (method == NULL) return OK;
+    if (!(method->access_flags & flags)) return OK; // Maybe private consturct method.
     return methodCall(class, frame, name, descriptor, flags); 
 }
 
