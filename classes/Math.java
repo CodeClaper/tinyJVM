@@ -1,4 +1,9 @@
 public class Math {
+
+    public Math() {
+        System.out.println("<init> from Math.");
+    }
+
     public int sum(int a, int b) {
         return a + b;
     }
