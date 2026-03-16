@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "class.h"
 #include "data.h"
 #include "mmr.h"
@@ -1084,24 +1085,17 @@ static FrameTag getFramTag(U1 val) {
  * Return NULL if not found. */
 static FILE *getFile(char *class_name) {
     FILE *fp = NULL;
-    char *filename;
+    char filename[1024];
 
     for (int i = 0; i < javaStates.num_class_path; i++) {
-        size_t size = strlen(javaStates.class_path[i]) + strlen(class_name) + 7;
         char last = *(javaStates.class_path[i] + strlen(javaStates.class_path[i]) - 1);
-        filename = salloc(size);
-        if (filename == NULL) error("Out of memory");
         if (last == '/') sprintf(filename, "%s%s.class", javaStates.class_path[i], class_name);
         else sprintf(filename, "%s/%s.class", javaStates.class_path[i], class_name);
-		if ((fp = fopen(filename, "r")) != NULL) {
-			sfree(filename);
-			break;
-		}
-		sfree(filename);
+		if ((fp = fopen(filename, "r")) != NULL) break;
     }
 
     if (fp == NULL) 
-        error("Not found class file: %s.class", class_name);
+        error("Not found class file: %s.class, error: %s", class_name, strerror(errno));
     return fp;
 }
 
@@ -1120,9 +1114,9 @@ static ClassFile *getClass(char *class_name) {
     fp = getFile(class_name);
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) error("Parse class file fail. ");
+    fclose(fp);
     if (class->super_class) class->super = getClass(classGetClassName(class, class->super_class));
     if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) error("Error when execute <clinit>");
-    fclose(fp);
 
     class->init = 1;
     class->next = javaStates.classes;
