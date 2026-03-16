@@ -43,6 +43,7 @@ static int op_aload_3(Frame *frame);
 static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
+static int op_putstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
 static int op_invokespecial(Frame *frame);
 static int op_new(Frame *frame);
@@ -643,7 +644,7 @@ static INSTRUCT instrtab[] = {
 	[ARETURN]         = op_nop,
 	[RETURN]          = op_return,
 	[GETSTATIC]       = op_getstatic,
-	[PUTSTATIC]       = op_nop,
+	[PUTSTATIC]       = op_putstatic,
 	[GETFIELD]        = op_nop,
 	[PUTFIELD]        = op_nop,
 	[INVOKEVIRTUAL]   = op_invokevirtual,
@@ -1014,6 +1015,34 @@ static int op_getstatic(Frame *frame) {
 
 /* putstatic: set static field in class. */
 static int op_putstatic(Frame *frame) {
+    U2 u;
+    CONSTANT_Fieldref_info *fieldref;
+    ConstantPoolInfo *cp;
+    Value v;
+    
+    v = frameStatckPop(frame);
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
+    cp = resolveField(frame->class, fieldref, NULL);
+    if (cp != NULL) {
+        switch (cp->tag) {
+            case CONSTANT_Integer:
+                memcpy(&cp->info.integer_info.bytes, &v.i, 4);
+                break;
+            case CONSTANT_Long:
+                memcpy(&cp->info.long_info.high_bytes, (char *)(&v.l) + 0, 4);
+                memcpy(&cp->info.long_info.low_bytes, (char *)(&v.l) + 4, 4);
+                break;
+            case CONSTANT_Float:
+                memcpy(&cp->info.float_info.bytes, &v.f, 4);
+                break;
+            case CONSTANT_Double:
+                memcpy(&cp->info.double_info.high_bytes, (char *)(&v.d) + 0, 4);
+                memcpy(&cp->info.double_info.low_bytes, (char *)(&v.d) + 4, 4);
+                break;
+        }
+    }
     return NO_RETURN;
 }
 
