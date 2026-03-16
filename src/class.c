@@ -1028,7 +1028,7 @@ static ClassFile *getClassFromCache(char *class_name) {
         return bootstrapClass;
     for (ClassFile *class = javaStates.classes; 
             class != NULL; class = class->next) {
-        if (strcmp(class_name, classGetClassName(class, class->this_class))) 
+        if (strcmp(class_name, classGetClassName(class, class->this_class)) == 0) 
             return class;
     }
     return NULL;

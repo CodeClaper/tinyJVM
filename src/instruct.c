@@ -26,6 +26,14 @@ static int op_istore_3(Frame *frame);
 static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
+static int op_astore_0(Frame *frame);
+static int op_astore_1(Frame *frame);
+static int op_astore_2(Frame *frame);
+static int op_astore_3(Frame *frame);
+static int op_aload_0(Frame *frame);
+static int op_aload_1(Frame *frame);
+static int op_aload_2(Frame *frame);
+static int op_aload_3(Frame *frame);
 static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
@@ -490,10 +498,10 @@ static INSTRUCT instrtab[] = {
 	[DLOAD_1]         = op_nop,
 	[DLOAD_2]         = op_nop,
 	[DLOAD_3]         = op_nop,
-	[ALOAD_0]         = op_nop,
-	[ALOAD_1]         = op_nop,
-	[ALOAD_2]         = op_nop,
-	[ALOAD_3]         = op_nop,
+	[ALOAD_0]         = op_aload_0,
+	[ALOAD_1]         = op_aload_1,
+	[ALOAD_2]         = op_aload_2,
+	[ALOAD_3]         = op_aload_3,
 	[IALOAD]          = op_nop,
 	[LALOAD]          = op_nop,
 	[FALOAD]          = op_nop,
@@ -523,10 +531,10 @@ static INSTRUCT instrtab[] = {
 	[DSTORE_1]        = op_nop,
 	[DSTORE_2]        = op_nop,
 	[DSTORE_3]        = op_nop,
-	[ASTORE_0]        = op_nop,
-	[ASTORE_1]        = op_nop,
-	[ASTORE_2]        = op_nop,
-	[ASTORE_3]        = op_nop,
+	[ASTORE_0]        = op_astore_0,
+	[ASTORE_1]        = op_astore_1,
+	[ASTORE_2]        = op_astore_2,
+	[ASTORE_3]        = op_astore_3,
 	[IASTORE]         = op_nop,
 	[LASTORE]         = op_nop,
 	[FASTORE]         = op_nop,
@@ -796,6 +804,38 @@ static int op_istore_3(Frame *frame) {
     return NO_RETURN;
 }
 
+/* astore_0: store reference into local variable. */
+static int op_astore_0(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 0, v);
+    return NO_RETURN;
+}
+
+/* astore_1: store reference into local variable. */
+static int op_astore_1(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 1, v);
+    return NO_RETURN;
+}
+
+/* astore_2: store reference into local variable. */
+static int op_astore_2(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 2, v);
+    return NO_RETURN;
+}
+
+/* astore_3: store reference into local variable. */
+static int op_astore_3(Frame *frame) {
+    Value v;
+    v = frameStatckPop(frame);
+    frameLocalStore(frame, 3, v);
+    return NO_RETURN;
+}
+
 /* load_1: load int from local variable. */
 static int op_iload_1(Frame *frame) {
     Value v;
@@ -814,6 +854,38 @@ static int op_iload_2(Frame *frame) {
 
 /* load_3: load int from local variable. */
 static int op_iload_3(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 3);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* aload_0: load reference from local variable. */
+static int op_aload_0(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 0);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* aload_1: load reference from local variable. */
+static int op_aload_1(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 1);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* aload_2: load reference from local variable. */
+static int op_aload_2(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 2);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* aload_3: load reference from local variable. */
+static int op_aload_3(Frame *frame) {
     Value v;
     v = frameLocalLoad(frame, 3);
     frameStatckPush(frame, v);
@@ -896,7 +968,7 @@ static int op_invokevirtual(Frame *frame) {
             error("error invoking native method %s", name);
     } else if ((class = loadClass(classname)) != NULL) {
         if (methodCall(class, frame, name, type, ACC_METHOD_STATIC) == ERR)
-            error("cound not find method %s", name);
+            error("could not find method %s in class %s.", name, classname);
     } else error("could not load class %s", classname);
 
     return NO_RETURN;
@@ -904,6 +976,29 @@ static int op_invokevirtual(Frame *frame) {
 
 /* invokespecial: invoke <init>, instance private method, parent method.*/
 static int op_invokespecial(Frame *frame) {
+    U2 u;
+    ClassFile *class;
+    CONSTANT_Methodref_info *method_ref;
+    char *classname, *name, *type;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    method_ref = &frame->class->constant_pool[u]->info.methodref_info;
+    classname = classGetClassName(frame->class, method_ref->class_index);
+    name = classGetNameAndTypeForName(frame->class, method_ref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, method_ref->name_type_index);
+    class = loadClass(classname);
+
+    if (class == NULL) 
+        error("could not load class %s", classname);
+    if (strcmp(name, "<init>") == 0) {
+        if (initMethodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR) 
+            error("could not find method %s in class %s.", name, classname);
+    } else {
+        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR) 
+            error("could not find method %s in class %s.", name, classname);
+    }
+    
     return NO_RETURN;
 }
 

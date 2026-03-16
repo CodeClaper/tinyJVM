@@ -4,7 +4,7 @@
 #include "instruct.h"
 #include "util.h"
 
-/* Invoke clinit method. */
+/* Invoke <clinit> method. */
 int clinitMethodCall(ClassFile *class) {
     Frame *frame;
     MethodInfo *method;
@@ -15,6 +15,15 @@ int clinitMethodCall(ClassFile *class) {
     if (method == NULL) return OK;
     frame = framePush(class, 0, 1, NULL);
     return methodCall(class, frame, "<clinit>", "()V", ACC_METHOD_STATIC); 
+}
+
+/* Invoke <init> method. */
+int initMethodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {
+    MethodInfo *method;
+
+    method = classGetMethod(class, name, descriptor);
+    if (method == NULL) return OK;
+    return methodCall(class, frame, name, descriptor, flags); 
 }
 
 /* Invoke method. */

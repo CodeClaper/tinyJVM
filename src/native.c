@@ -12,10 +12,10 @@ static struct {
     char *name;
     NativeClassType nclass;
 } nclasstab[] = {
-    {"java/lang/System",    LANG_SYSTEM},
-    {"java/lang/String",    LANG_STRING},
-    {"java/io/PrintStream", IO_PRINTSTREAM},
-    {NULL,                  NONE_CLASS}
+    {"java/lang/System",        LANG_SYSTEM},
+    {"java/lang/String",        LANG_STRING},
+    {"java/io/PrintStream",     IO_PRINTSTREAM},
+    {NULL,                      NONE_CLASS}
 };
 
 static struct NativeMethod {
