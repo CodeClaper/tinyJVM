@@ -3,7 +3,6 @@
 typedef enum NativeClassType {
     NONE_CLASS,
     LANG_SYSTEM,
-    LANG_STRING,
     IO_PRINTSTREAM
 } NativeClassType;
 

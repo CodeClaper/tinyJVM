@@ -16,6 +16,12 @@
 #define OP_LOOKUPSWITCH -3
 
 static int op_nop(Frame *frame);
+static int op_iconst_0(Frame *frame);
+static int op_iconst_1(Frame *frame);
+static int op_iconst_2(Frame *frame);
+static int op_iconst_3(Frame *frame);
+static int op_iconst_4(Frame *frame);
+static int op_iconst_5(Frame *frame);
 static int op_pop(Frame *frame);
 static int op_pop2(Frame *frame);
 static int op_bipush(Frame *frame);
@@ -460,12 +466,12 @@ static INSTRUCT instrtab[] = {
 	[NOP]             = op_nop,
 	[ACONST_NULL]     = op_nop,
 	[ICONST_M1]       = op_nop,
-	[ICONST_0]        = op_nop,
-	[ICONST_1]        = op_nop,
-	[ICONST_2]        = op_nop,
-	[ICONST_3]        = op_nop,
-	[ICONST_4]        = op_nop,
-	[ICONST_5]        = op_nop,
+	[ICONST_0]        = op_iconst_0,
+	[ICONST_1]        = op_iconst_1,
+	[ICONST_2]        = op_iconst_2,
+	[ICONST_3]        = op_iconst_3,
+	[ICONST_4]        = op_iconst_4,
+	[ICONST_5]        = op_iconst_5,
 	[LCONST_0]        = op_nop,
 	[LCONST_1]        = op_nop,
 	[FCONST_0]        = op_nop,
@@ -746,6 +752,62 @@ static int op_nop(Frame *frame) {
     error("instruction %s not implememnted (yet).", getOpName(frame->code->code[frame->pc - 1]));
     return NO_RETURN;
 }
+
+/* iconst_0: push int 0 to op statck. */
+static int op_iconst_0(Frame *frame) {
+    Value v;
+    v.i = 0;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* iconst_1: push int 1 to op statck. */
+static int op_iconst_1(Frame *frame) {
+    Value v;
+    v.i = 1;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* iconst_2: push int 2 to op statck. */
+static int op_iconst_2(Frame *frame) {
+    Value v;
+    v.i = 2;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* iconst_3: push int 3 to op statck. */
+static int op_iconst_3(Frame *frame) {
+    Value v;
+    v.i = 3;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* iconst_4: push int 4 to op statck. */
+static int op_iconst_4(Frame *frame) {
+    Value v;
+    v.i = 4;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+
+/* iconst_5: push int 5 to op statck. */
+static int op_iconst_5(Frame *frame) {
+    Value v;
+    v.i = 5;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
 
 /* pop: pop the top op statck value. */
 static int op_pop(Frame *frame) {

@@ -13,7 +13,6 @@ static struct {
     NativeClassType nclass;
 } nclasstab[] = {
     {"java/lang/System",        LANG_SYSTEM},
-    {"java/lang/String",        LANG_STRING},
     {"java/io/PrintStream",     IO_PRINTSTREAM},
     {NULL,                      NONE_CLASS}
 };
@@ -24,11 +23,6 @@ static struct NativeMethod {
 } *nmethodtab[] = {
     [LANG_SYSTEM] = (struct NativeMethod[]) {
         { NULL, NULL}
-    },
-    [LANG_STRING] = (struct NativeMethod[]) {
-        {"charAt", NULL},
-        {"length", NULL},
-        {NULL, NULL},
     },
     [IO_PRINTSTREAM] = (struct NativeMethod[]) {
         {"print", NULL},
