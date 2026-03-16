@@ -967,7 +967,7 @@ static int op_invokevirtual(Frame *frame) {
         if (nativeMethodCall(frame, ntype, name, type) == ERR) 
             error("error invoking native method %s", name);
     } else if ((class = loadClass(classname)) != NULL) {
-        if (methodCall(class, frame, name, type, ACC_METHOD_STATIC) == ERR)
+        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)
             error("could not find method %s in class %s.", name, classname);
     } else error("could not load class %s", classname);
 
