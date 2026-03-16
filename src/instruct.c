@@ -41,6 +41,7 @@ static int op_invokevirtual(Frame *frame);
 static int op_invokespecial(Frame *frame);
 static int op_new(Frame *frame);
 static int op_dup(Frame *frame);
+static int op_ifnonnull(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
 
@@ -655,7 +656,7 @@ static INSTRUCT instrtab[] = {
 	[WIDE]            = op_nop,
 	[MULTIANEWARRAY]  = op_nop,
 	[IFNULL]          = op_nop,
-	[IFNONNULL]       = op_nop,
+	[IFNONNULL]       = op_ifnonnull,
 	[GOTO_W]          = op_nop,
 	[JSR_W]           = op_nop,
 };
@@ -1031,6 +1032,23 @@ static int op_dup(Frame *frame) {
 
     v = frame->stacks[frame->nstack];
     frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* ifnonnull: jump if reference not null. */
+static int op_ifnonnull(Frame *frame) {
+    I2 i;
+    U2 base;
+    Value v;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.h == NULL) frame->pc = base + i;
+    else frame->pc += 2;
+
     return NO_RETURN;
 }
 
