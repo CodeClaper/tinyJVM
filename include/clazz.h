@@ -1,11 +1,24 @@
 #include "data.h"
+
+typedef struct Field {
+    U2                  access_flags;
+    char                *name;
+    char                *descriptor;
+    U4                  offset;
+    FieldInfo           *field_info;
+} Field;
+
 typedef struct Clazz {
-    char *              className;
+    char                *className;
     U4                  instanceSize;
     int                 initial;
-    ClassFile           *class;
+    struct ClassFile    *class;
     struct Clazz        *super;
     struct Clazz        *next;
+    U2                  fileds_count;
+    struct Field        **fields;
+    U4                  static_var_size;
+    char                *static_vars;
 } Clazz;
 
 typedef struct JavaObjectHeader {

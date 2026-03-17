@@ -3,6 +3,7 @@
 #include "clazz.h"
 #include "data.h"
 #include "mmr.h"
+#include "util.h"
 
 static Clazz *clazzStack = NULL;
 
@@ -17,19 +18,53 @@ static U4 getTypeSize(char type) {
     }
 }
 
+/* Convert FieldInfo to Field. */
+static void convertFields(ClassFile *class, Field ***fields, FieldInfo **field_infos, U2 count) {
+    U2 i;
+    U4 offset;
+    Field *field;
+
+    if (count == 0) return;
+    
+    *fields = salloc(sizeof(Field) * count);
+    if (*fields == NULL) error("Out of memory");
+    offset = 0;
+
+    for (i = 0; i < count; i++) {
+        field = salloc(sizeof(Field));
+        field->access_flags = field_infos[i]->access_flags;
+        field->name = classGetUtf8(class, field_infos[i]->name_index);
+        field->descriptor = classGetUtf8(class, field_infos[i]->descriptor_index);
+        field->field_info = field_infos[i];
+        field->offset = offset;
+        (*fields)[i] = field;
+        offset += getTypeSize(field->descriptor[0]);
+    }
+}
+
+static U4 clazzCalcStaticVarSize(Clazz *clazz) {
+    U2 i;
+    U4 size;
+    Field *fi;
+
+    size = 0;
+    for (i = 0; i < clazz->fileds_count; i++) {
+        fi = clazz->fields[i];
+        if (fi->access_flags & ACC_METHOD_STATIC) 
+            size += clazz->fields[i]->offset;
+    }
+
+    return size;
+}
 
 /* Clac instance fields size. */
 static U4 clazzClacInstanceFiledsSize(Clazz *clazz) {
     U2 i;
     U4 size; 
-    ClassFile *class;
-    FieldInfo *fi;
 
     size = 0; 
-    class = clazz->class;
-    for (i = 0; i < class->fields_count; i++) {
-        fi = class->fields[i];
-        size += getTypeSize(fi->descriptor_index);
+    for (i = 0; i < clazz->fileds_count; i++) {
+        size += clazz->fields[i]->offset;
     }
 
     return size;
@@ -91,10 +126,14 @@ static Clazz *clazzLoadFile(char *classname) {
     c->class = class;
     c->className = sstrdup(classname);
     c->super = clazzLoadFileViaIndex(class, class->super_class);
-    c->instanceSize = clazzCalcInstanceSize(c);
+    c->fileds_count = class->fields_count;
     c->initial = 0;
+    convertFields(class, &c->fields, class->fields, c->fileds_count);
+    c->instanceSize = clazzCalcInstanceSize(c);
+    c->static_var_size = clazzCalcStaticVarSize(c);
+    c->static_vars = salloc(c->static_var_size);
+    
     clazzPushStack(c);
-
     return c;
 }
 
