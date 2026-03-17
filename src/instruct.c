@@ -744,7 +744,7 @@ static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *
         if (index != 0) 
             return class->constant_pool[index];
     }
-    error("could not resolve field.");
+    // error("could not resolve field.");
     return NULL;
 }
 

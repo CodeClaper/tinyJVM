@@ -1115,12 +1115,16 @@ static ClassFile *getClass(char *class_name) {
     if (fp == NULL) return NULL;
     if (readClass(fp, class) == ERR) error("Parse class file fail. ");
     fclose(fp);
-    if (class->super_class) class->super = getClass(classGetClassName(class, class->super_class));
-    if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) error("Error when execute <clinit>");
 
-    class->init = 1;
+    if (class->super_class) 
+        class->super = getClass(classGetClassName(class, class->super_class));
     class->next = javaStates.classes;
     javaStates.classes = class;
+
+    if (javaStates.mode == JAVA && clinitMethodCall(class) == ERR) 
+        error("Error when execute <clinit>");
+    else 
+        class->init = 1;
 
     return class;
 }
