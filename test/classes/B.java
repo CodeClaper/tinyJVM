@@ -3,6 +3,7 @@ public class B extends A  {
     private float b;
     private double c;
     private String name;
+    private static String mes = "Hello world";
     
     public B() {
         super();
