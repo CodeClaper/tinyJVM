@@ -10,6 +10,7 @@
 #include "util.h"
 #include "instruct.h"
 #include "method.h"
+#include "clazz.h"
 
 static FrameTag getFramTag(U1 val);
 static AttributeTag getAttrTag(char *attr_name);
@@ -1125,6 +1126,8 @@ static ClassFile *getClass(char *class_name) {
         error("Error when execute <clinit>");
     else 
         class->init = 1;
+
+    clazzLoad(class_name);
 
     return class;
 }

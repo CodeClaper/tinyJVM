@@ -982,34 +982,26 @@ static int op_ldc(Frame *frame) {
 static int op_getstatic(Frame *frame) {
     U2 u;
     CONSTANT_Fieldref_info *fieldref;
-    ConstantPoolInfo *cp;
     Value v;
+    char *classname, *name, *type;
+    Clazz *clazz;
+    Field *field;
 
     u = frame->code->code[frame->pc++] << 8;
     u |= frame->code->code[frame->pc++];
     fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
-    cp = resolveField(frame->class, fieldref, &v.h);
-    if (cp != NULL) {
-        switch (cp->tag) {
-            case CONSTANT_Integer:
-                v.i = castInt(cp->info.integer_info.bytes);
-                break;
-            case CONSTANT_Long:
-                v.l = castLong(cp->info.long_info.high_bytes, cp->info.long_info.low_bytes);
-                break;
-            case CONSTANT_Float:
-                v.f = castFloat(cp->info.float_info.bytes);
-                break;
-            case CONSTANT_Double:
-                v.d = castDouble(cp->info.double_info.high_bytes, cp->info.double_info.low_bytes);
-                break;
-            case CONSTANT_String:
-                v.h = heapNew(0, 0);
-                v.h->obj = sstrdup(classGetUtf8(frame->class, cp->info.string_info.string_index));
-                break;
-        }
-    }
+    classname = classGetClassName(frame->class, fieldref->class_index);
+    name = classGetNameAndTypeForName(frame->class, fieldref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, fieldref->name_type_index);
+    clazz = clazzLoad(classname);
+    if (clazz == NULL) error("Load clazz: %s fail.", classname);
+    field = clazzFindField(clazz, name, type);
+    if (field == NULL) error("Not found field: %s in class: %s", name, classname);
+
+    /* Get static var and push into stack. */
+    v = clazzGetStaticVar(clazz, field);
     frameStatckPush(frame, v);
+
     return NO_RETURN;
 }
 
@@ -1017,32 +1009,26 @@ static int op_getstatic(Frame *frame) {
 static int op_putstatic(Frame *frame) {
     U2 u;
     CONSTANT_Fieldref_info *fieldref;
-    ConstantPoolInfo *cp;
     Value v;
+    char *classname, *name, *type;
+    Clazz *clazz;
+    Field *field;
     
     v = frameStatckPop(frame);
     u = frame->code->code[frame->pc++] << 8;
     u |= frame->code->code[frame->pc++];
     fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
-    cp = resolveField(frame->class, fieldref, NULL);
-    if (cp != NULL) {
-        switch (cp->tag) {
-            case CONSTANT_Integer:
-                memcpy(&cp->info.integer_info.bytes, &v.i, 4);
-                break;
-            case CONSTANT_Long:
-                memcpy(&cp->info.long_info.high_bytes, (char *)(&v.l) + 0, 4);
-                memcpy(&cp->info.long_info.low_bytes, (char *)(&v.l) + 4, 4);
-                break;
-            case CONSTANT_Float:
-                memcpy(&cp->info.float_info.bytes, &v.f, 4);
-                break;
-            case CONSTANT_Double:
-                memcpy(&cp->info.double_info.high_bytes, (char *)(&v.d) + 0, 4);
-                memcpy(&cp->info.double_info.low_bytes, (char *)(&v.d) + 4, 4);
-                break;
-        }
-    }
+    classname = classGetClassName(frame->class, fieldref->class_index);
+    name = classGetNameAndTypeForName(frame->class, fieldref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, fieldref->name_type_index);
+    clazz = clazzLoad(classname);
+    if (clazz == NULL) error("Load clazz: %s fail.", classname);
+    field = clazzFindField(clazz, name, type);
+    if (field == NULL) error("Not found field: %s in class: %s", name, classname);
+
+    /* Set static var. */
+    clazzSetStaticVar(clazz, field, v);
+
     return NO_RETURN;
 }
 

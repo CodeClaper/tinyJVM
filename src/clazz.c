@@ -50,7 +50,7 @@ static U4 clazzCalcStaticVarSize(Clazz *clazz) {
     size = 0;
     for (i = 0; i < clazz->fileds_count; i++) {
         fi = clazz->fields[i];
-        if (fi->access_flags & ACC_METHOD_STATIC) 
+        if (fi->access_flags & ACC_FIELD_STATIC) 
             size += clazz->fields[i]->offset;
     }
 
@@ -61,10 +61,13 @@ static U4 clazzCalcStaticVarSize(Clazz *clazz) {
 static U4 clazzClacInstanceFiledsSize(Clazz *clazz) {
     U2 i;
     U4 size; 
+    Field *field;
 
     size = 0; 
     for (i = 0; i < clazz->fileds_count; i++) {
-        size += clazz->fields[i]->offset;
+        field = clazz->fields[i];
+        if (!(field->access_flags & ACC_FIELD_STATIC)) 
+            size += clazz->fields[i]->offset;
     }
 
     return size;
@@ -137,7 +140,6 @@ static Clazz *clazzLoadFile(char *classname) {
     return c;
 }
 
-
 /* Load the Object. */
 void clazzLoadObject() {
     Clazz *obj = salloc(sizeof(Clazz));
@@ -154,5 +156,103 @@ Clazz *clazzLoad(char *classname) {
     Clazz *c = clazzFindInCache(classname);
     if (c != NULL) return c;
     else return clazzLoadFile(classname); 
+}
+
+/* Find field. */
+Field *clazzFindField(Clazz *clazz, char *name, char *type) {
+    U2 i;
+    Field *field;
+
+    for ( i = 0; i < clazz->fileds_count; i++) {
+        field = clazz->fields[i];
+        if (strcmp(name, field->name) == 0 && strcmp(type, field->descriptor) == 0)
+            return field;
+    }
+    return NULL;
+}
+
+/* Set static var. */
+void clazzSetStaticVar(Clazz *clazz, Field *field, Value v) {
+    U2 i;
+    U4 offset;
+    Field *current;
+    char *dest;
+
+    offset = 0;
+    for (i = 0; i < clazz->fileds_count; i++) {
+        current = clazz->fields[i];
+        if (current == field) break;
+        else if (current->access_flags & ACC_FIELD_STATIC) offset += getTypeSize(current->descriptor[0]);
+        else continue;
+    }
+    
+    dest = clazz->static_vars + offset;
+    switch (field->descriptor[0]) {
+        case 'Z': case 'B':
+            memcpy(dest, &v.i, 1);
+            break;
+        case 'C': case 'S':
+            memcpy(dest, &v.i, 2);
+            break;
+        case 'I': 
+            memcpy(dest, &v.i, 4);
+            break;
+        case 'F':
+            memcpy(dest, &v.f, 4);
+            break;
+        case 'J': 
+            memcpy(dest, &v.l, 8);
+            break;
+        case 'D':
+            memcpy(dest, &v.d, 8);
+            break;
+        case 'L': case '[':
+            memcpy(dest, &v.h->obj, 4);
+            break;
+    }
+}
+
+/* Get static var. */
+Value clazzGetStaticVar(Clazz *clazz, Field *field) {
+    U2 i;
+    U4 offset;
+    Field *current;
+    char *dest;
+    Value v;
+
+    offset = 0;
+    for (i = 0; i < clazz->fileds_count; i++) {
+        current = clazz->fields[i];
+        if (current == field) break;
+        else if (current->access_flags & ACC_FIELD_STATIC) offset += getTypeSize(current->descriptor[0]);
+        else continue;
+    }
+    
+    dest = clazz->static_vars + offset;
+    switch (field->descriptor[0]) {
+        case 'Z': case 'B':
+            memcpy(&v.i, dest, 1);
+            break;
+        case 'C': case 'S':
+            memcpy(&v.i, dest, 2);
+            break;
+        case 'I': 
+            memcpy(&v.i, dest, 4);
+            break;
+        case 'F':
+            memcpy(&v.f, dest, 4);
+            break;
+        case 'J': 
+            memcpy(&v.l, dest, 8);
+            break;
+        case 'D':
+            memcpy(&v.d, dest, 8);
+            break;
+        case 'L': case '[':
+            memcpy(&v.h->obj, dest, 4);
+            break;
+    }
+
+    return v;
 }
 
