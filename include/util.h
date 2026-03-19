@@ -9,3 +9,4 @@ double castDouble(U4 high_bytes, U4 low_bytes);
 RunMode runMode(char *name);
 void seterror(char *format, ...);
 void error(char *format, ...);
+U4 getTypeSize(char type);

@@ -104,3 +104,15 @@ void error(char *format, ...) {
 
     exit(1);
 }
+
+/* Type size. */
+U4 getTypeSize(char type) {
+    switch (type) {
+        case 'Z': case 'B': return 1; // boolean, byte
+        case 'C': case 'S': return 2; // char, short
+        case 'I': case 'F': return 4; // int, float
+        case 'J': case 'D': return 8; // long, double
+        case 'L': case '[': return 8; // reference
+        default: return 0;
+    }
+}

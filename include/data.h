@@ -36,8 +36,6 @@ typedef struct Frame {
 typedef struct Heap {
     struct Heap     *prev, *next;
     void            *obj;
-    I4              nmemb;
-    U2              count;
 } Heap;
 
 typedef union Value {
@@ -45,6 +43,7 @@ typedef union Value {
     I8              l;
     float           f;
     double          d;
+    char            *s;
     Heap            *h;
 } Value;
 

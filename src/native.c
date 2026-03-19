@@ -7,6 +7,7 @@
 
 
 static void nativePrintln(Frame *frame, char *type);
+static void nativeRegisterNatives(Frame *frame, char *type);
 
 static struct {
     char *name;
@@ -22,7 +23,7 @@ static struct NativeMethod {
     void (*method)(Frame *frame, char *type);
 } *nmethodtab[] = {
     [LANG_SYSTEM] = (struct NativeMethod[]) {
-        { NULL, NULL}
+        { "registerNatives", nativeRegisterNatives}
     },
     [IO_PRINTSTREAM] = (struct NativeMethod[]) {
         {"print", NULL},
@@ -49,6 +50,10 @@ static void nativePrintln(Frame *frame, char *type) {
         else if (strcmp(type, "(S)V") == 0) fprintf((FILE *)vfp.h->obj, "%d\n", v.i);
         else if (strcmp(type, "(Z)V") == 0) fprintf((FILE *)vfp.h->obj, "%d\n", v.i);
      }
+}
+
+static void nativeRegisterNatives(Frame *frame, char *type) {
+    // Nothing todo.
 }
 
 /* Find native class. */

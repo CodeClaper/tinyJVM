@@ -1,8 +1,8 @@
-#include <stdbool.h>
-#include "c.h"
-
 #ifndef __CLASS_H__
 #define __CLASS_H__
+
+#include <stdbool.h>
+#include "c.h"
 
 /* ==========================================
  * Class Access Flags.

@@ -16,6 +16,7 @@
 #define OP_LOOKUPSWITCH -3
 
 static int op_nop(Frame *frame);
+static int op_aconst_null(Frame *frame);
 static int op_iconst_0(Frame *frame);
 static int op_iconst_1(Frame *frame);
 static int op_iconst_2(Frame *frame);
@@ -46,6 +47,7 @@ static int op_getstatic(Frame *frame);
 static int op_putstatic(Frame *frame);
 static int op_invokevirtual(Frame *frame);
 static int op_invokespecial(Frame *frame);
+static int op_invokestatic(Frame *frame);
 static int op_new(Frame *frame);
 static int op_dup(Frame *frame);
 static int op_anewarray(Frame *frame);
@@ -360,7 +362,7 @@ static char *instrnames[CODE_LAST] = {
 	[LADD]            = "ladd",
 	[FADD]            = "fadd",
 	[DADD]            = "dadd",
-	[ISUB]            = "isub",
+[ISUB]            = "isub",
 	[LSUB]            = "lsub",
 	[FSUB]            = "fsub",
 	[DSUB]            = "dsub",
@@ -466,7 +468,7 @@ static char *instrnames[CODE_LAST] = {
 
 static INSTRUCT instrtab[] = {
 	[NOP]             = op_nop,
-	[ACONST_NULL]     = op_nop,
+	[ACONST_NULL]     = op_aconst_null,
 	[ICONST_M1]       = op_nop,
 	[ICONST_0]        = op_iconst_0,
 	[ICONST_1]        = op_iconst_1,
@@ -649,7 +651,7 @@ static INSTRUCT instrtab[] = {
 	[PUTFIELD]        = op_nop,
 	[INVOKEVIRTUAL]   = op_invokevirtual,
 	[INVOKESPECIAL]   = op_invokespecial,
-	[INVOKESTATIC]    = op_nop,
+	[INVOKESTATIC]    = op_invokestatic,
 	[INVOKEINTERFACE] = op_nop,
 	[INVOKEDYNAMIC]   = op_nop,
 	[NEW]             = op_new,
@@ -704,54 +706,27 @@ static Value resolveConstant(ClassFile *class, U2 index) {
             break;
         case CONSTANT_String:
             s = classGetString(class,  index);       
-            v.h = heapNew(0, 0);
-            v.h->obj = sstrdup(s);
+            v.s = sstrdup(s);
             break;
     }
 
     return v;
 }
 
-/* Resolve field reference. */
-static ConstantPoolInfo *resolveField(ClassFile *class, CONSTANT_Fieldref_info *fieldref, Heap **h) {
-    NativeClassType ntype;
-    FieldInfo *field;
-    U2 index, i;
-    char *classname, *name, *type;
-
-    if (h != NULL) *h = NULL;
-    classname = classGetClassName(class, fieldref->class_index);
-    name = classGetNameAndTypeForName(class, fieldref->name_type_index);
-    type = classGetNameAndTypeForType(class, fieldref->name_type_index);
-    
-    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
-        if (h != NULL) {
-            (*h) = heapNew(0, 0);
-            (*h)->obj = nativeJavaObj(ntype, name, type);
-        }
-        return NULL;
-    } else if (
-        (class = loadClass(classname)) != NULL && 
-        (field = classGetField(class, name, type)) != NULL
-    ) {
-        index = 0;
-        for (i = 0; i < field->attribute_count;i++) {
-            if (field->attributes[i]->tag == ATT_ConstantValue) {
-                index = field->attributes[i]->info.constantvalue.constantvalue_index;
-                break;
-            }
-        }
-        if (index != 0) 
-            return class->constant_pool[index];
-    }
-    // error("could not resolve field.");
-    return NULL;
-}
-
 /* nop: do nothing. */
 static int op_nop(Frame *frame) {
     UNUSED(frame);
-    error("instruction %s not implememnted (yet).", getOpName(frame->code->code[frame->pc - 1]));
+    error("instruction %s not implememnted (yet) in class: %s.", 
+          getOpName(frame->code->code[frame->pc - 1]), 
+          classGetClassName(frame->class, frame->class->this_class));
+    return NO_RETURN;
+}
+
+/* aconst_null: push null. */
+static int op_aconst_null(Frame *frame) {
+    Value v;
+    v.h = heapNull();
+    frameStatckPush(frame, v);
     return NO_RETURN;
 }
 
@@ -1032,6 +1007,33 @@ static int op_putstatic(Frame *frame) {
     return NO_RETURN;
 }
 
+/* getfield: */
+static int op_getfield(Frame *frame) {
+    U2 u;
+    CONSTANT_Fieldref_info *fieldref;
+    Value v;
+    char *classname, *name, *type;
+    Clazz *clazz;
+    Field *field;
+    JavaObject *obj;
+
+    v = frameStatckPop(frame);
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
+    classname = classGetClassName(frame->class, fieldref->class_index);
+    name = classGetNameAndTypeForName(frame->class, fieldref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, fieldref->name_type_index);
+    clazz = clazzLoad(classname);
+    if (clazz == NULL) error("Load clazz: %s fail.", classname);
+    field = clazzFindField(clazz, name, type);
+    if (field == NULL) error("Not found field: %s in class: %s", name, classname);
+    if (v.h == NULL || v.h->obj == NULL) error("java/lang/NullPointerException");
+    obj = (JavaObject *)v.h->obj;
+
+    return NO_RETURN;
+}
+
 /* invokevirtual: invoke instance method. */
 static int op_invokevirtual(Frame *frame) {
     U2 u;
@@ -1086,24 +1088,44 @@ static int op_invokespecial(Frame *frame) {
     return NO_RETURN;
 }
 
+/* invokestatic: invoke static method. */
+static int op_invokestatic(Frame *frame) {
+    U2 u;
+    ClassFile *class;
+    NativeClassType ntype;
+    CONSTANT_Methodref_info *method_ref;
+    char *classname, *name, *type;
+
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    method_ref = &frame->class->constant_pool[u]->info.methodref_info;
+    classname = classGetClassName(frame->class, method_ref->class_index);
+    name = classGetNameAndTypeForName(frame->class, method_ref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, method_ref->name_type_index);
+    class = loadClass(classname);
+    
+    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
+        if (nativeMethodCall(frame, ntype, name, type) == ERR) 
+            error("error invoking native method %s", name);
+    } else if ((class = loadClass(classname)) != NULL) {
+        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)
+            error("could not find method %s in class %s.", name, classname);
+    } else error("could not load class %s", classname);
+
+    return NO_RETURN;
+}
+
 /* new: new an Object. */
 static int op_new(Frame *frame) {
     Value v;
     U2 index = 0;
     char *classname;
     Clazz *clazz;
-    JavaObject *obj;
     
     index = frame->code->code[frame->pc++] << 8 | frame->code->code[frame->pc++];
     classname = classGetClassName(frame->class, index);
     clazz = clazzLoad(classname);
-    
-    obj = salloc(clazz->instanceSize);
-    memset(obj, 0, clazz->instanceSize);
-    obj->clazz = clazz;
-    
-    v.h = heapNew(0, 0);
-    v.h->obj = obj;
+    v.h = heapNew(clazz);
 
     frameStatckPush(frame, v);
     return NO_RETURN;
@@ -1122,11 +1144,9 @@ static int op_dup(Frame *frame) {
 static int op_anewarray(Frame *frame) {
     U2 u;
     I4 count;
-    U4 size;
     Value v, nv;
     char *classname;
     Clazz *clazz;
-    JavaArrayObject *array_obj;
 
     u = frame->code->code[frame->pc++] << 8;
     u |= frame->code->code[frame->pc++];
@@ -1136,14 +1156,7 @@ static int op_anewarray(Frame *frame) {
     
     classname = classGetClassName(frame->class, u);
     clazz = clazzLoad(classname);
-    size = sizeof(JavaArrayObject) + count * sizeof(void *);
-
-    array_obj = salloc(size);
-    array_obj->header.clazz = clazz;
-    array_obj->length = count;
-
-    nv.h = heapNew(0, 0);
-    nv.h->obj = array_obj;
+    nv.h = heapNewArray(clazz, count);
 
     frameStatckPush(frame, nv);
     return NO_RETURN;

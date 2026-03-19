@@ -1,3 +1,6 @@
+#ifndef __CLAZZ_H__
+#define __CLAZZ_H__
+
 #include "data.h"
 
 typedef struct Field {
@@ -10,15 +13,17 @@ typedef struct Field {
 
 typedef struct Clazz {
     char                *className;
-    U4                  instanceSize;
     int                 initial;
     struct ClassFile    *class;
     struct Clazz        *super;
     struct Clazz        *next;
-    U2                  fileds_count;
-    struct Field        **fields;
+    U2                  static_field_count;
+    struct Field        **static_fields;
     U4                  static_var_size;
     char                *static_vars;
+    U2                  instance_field_count;
+    struct Field        **instance_fields;
+    U4                  instance_var_size;
 } Clazz;
 
 typedef struct JavaObjectHeader {
@@ -30,7 +35,6 @@ typedef struct JavaObjectHeader JavaObject;
 typedef struct JavaArrayObject {
     JavaObjectHeader    header;
     I4                  length;
-    void                *data;
 } JavaArrayObject;
 
 void clazzLoadObject();
@@ -38,3 +42,5 @@ Clazz *clazzLoad(char *classname);
 Field *clazzFindField(Clazz *clazz, char *name, char *type);
 void clazzSetStaticVar(Clazz *clazz, Field *field, Value v);
 Value clazzGetStaticVar(Clazz *clazz, Field *field);
+
+#endif // __CLAZZ_H__

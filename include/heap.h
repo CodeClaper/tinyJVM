@@ -1,4 +1,6 @@
-#include <stdlib.h>
 #include "data.h"
+#include "clazz.h"
 
-Heap *heapNew(I4 nmemb, size_t size);
+Heap *heapNew(Clazz *clazz);
+Heap *heapNewArray(Clazz *clazz, U2 length);
+Heap *heapNull();
