@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "method.h"
+#include "class.h"
 #include "data.h"
 #include "instruct.h"
 #include "util.h"
@@ -36,6 +37,7 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     Frame *newframe;
     OpReturn ret;
     Value v;
+    U2 total_slots;
     
     method = classGetMethod(class, name, descriptor);
     if (method == NULL) return ERR;
@@ -45,7 +47,8 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     code = &attr->info.code;
     newframe = framePush(class, code->max_locals, code->max_stack, code);
     if (newframe == NULL) error("Out of memory"); 
-
+    
+    printf(">>>>>>>>>> Begin excute method: %s >>>>>>>>>>>>\n", name);
     while (newframe->pc < code->code_length) {
         U1 instruction = code->code[newframe->pc++];
         INSTRUCT instruct = getInstruct(instruction);
@@ -56,6 +59,7 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
         }
         printf("Insruct: %s executed.\n", getOpName(instruction));
     }
+    printf("<<<<<<<< Method: %s executed.<<<<<<<<<<<<<<<<<\n", name);
     
     framePop();
     return 0;

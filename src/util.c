@@ -1,9 +1,11 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include "util.h"
+#include "class.h"
 #include "data.h"
 
 /* Case to short., */
@@ -115,4 +117,58 @@ U4 getTypeSize(char type) {
         case 'L': case '[': return 8; // reference
         default: return 0;
     }
+}
+
+/* Get method arg count.*/
+U2 getMethodArgCount(char *descriptor) {
+    U2 nargs;
+    char *p;
+
+    nargs = 0;
+    p = descriptor;
+
+    while (*p != '\0' && *p != '(') p++;
+    while (*p != '\0' && *p != ')') {
+        if (*p == 'L') {
+            nargs++;
+            while (*p != '\0' && *p != ';') p++;
+        } else if (*p == '[') {
+            nargs++;
+            while (*p == '[') p++;
+            if (*p == 'L') {
+                while (*p != '\0' && *p != ';') p++;
+            }
+        } else nargs++;
+
+        if (*p != '\0' && *p != ')') p++;
+    }
+
+    return nargs;
+}
+
+/* Get method slot count. */
+U2 getMethodSlotCount(char *descriptor, U2 flags) {
+    U2 nslots;
+    char *p;
+
+    nslots = (flags & ACC_METHOD_STATIC) ? 0 : 1;
+    p = strchr(descriptor, '(');
+    if (p == NULL) return nslots;
+    else p++; // skip '(';
+    
+    while (*p != ')') {
+        if (*p == 'J' || *p == 'D') nslots += 2;
+        else if (*p == 'L') nslots += 1;
+        else if (*p == '[') {
+            nslots += 1;
+            while (*p == '[') p++;
+            if (*p == 'L') {
+                while (*p != ';') p++;
+            }
+        } else nslots += 1;
+
+        p++;
+    }
+
+    return nslots;
 }

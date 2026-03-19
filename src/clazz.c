@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "clazz.h"
+#include "class.h"
 #include "data.h"
 #include "mmr.h"
 #include "util.h"
@@ -93,6 +94,91 @@ static void *getInstanceFields(ClassFile *class, U2 count) {
     return fields;
 }
 
+/* Get static method count. */
+static U2 getStaticMethodCount(ClassFile *class) {
+    MethodInfo *mi;
+    U2 i, count = 0;
+
+    for (i = 0; i < class->method_count; i++) {
+        mi = class->methods[i];
+        if (mi->access_flags & ACC_METHOD_STATIC) 
+            count++;
+    }
+
+    return count;
+}
+
+/* Get static methods. */
+static void *getStaticMethods(ClassFile *class, U2 count) {
+    U2 i, j;
+    Method **methods, *method;
+    MethodInfo *mi;
+
+    if (count == 0) return NULL;
+    
+    methods = salloc(sizeof(Method *) * count);
+    if (methods == NULL) error("Out of memory");
+
+    for (i = 0, j = 0; i < class->method_count; i++) {
+        mi = class->methods[i];
+        if (!(mi->access_flags & ACC_METHOD_STATIC)) continue;
+        method = salloc(sizeof(Method));
+        method->access_flags = mi->access_flags;
+        method->name = classGetUtf8(class, mi->name_index);
+        method->descriptor = classGetUtf8(class, mi->descriptor_index);
+        method->arg_count = getMethodArgCount(method->descriptor);
+        method->slot_count = getMethodSlotCount(method->descriptor, method->access_flags);
+        method->method_info = mi;
+        (methods)[j++] = method;
+    }
+
+    return methods;
+}
+
+
+/* Get instance method count. */
+static U2 getInstanceMethodCount(ClassFile *class) {
+    MethodInfo *mi;
+    U2 i, count = 0;
+
+    for (i = 0; i < class->method_count; i++) {
+        mi = class->methods[i];
+        if (!(mi->access_flags & ACC_METHOD_STATIC)) 
+            count++;
+    }
+
+    return count;
+}
+
+
+/* Get instance methods. */
+static void *getInstanceMethods(ClassFile *class, U2 count) {
+    U2 i, j;
+    Method **methods, *method;
+    MethodInfo *mi;
+
+    if (count == 0) return NULL;
+    
+    methods = salloc(sizeof(Method *) * count);
+    if (methods == NULL) error("Out of memory");
+
+    for (i = 0, j = 0; i < class->method_count; i++) {
+        mi = class->methods[i];
+        if (mi->access_flags & ACC_METHOD_STATIC) continue;
+        method = salloc(sizeof(Method));
+        method->access_flags = mi->access_flags;
+        method->name = classGetUtf8(class, mi->name_index);
+        method->descriptor = classGetUtf8(class, mi->descriptor_index);
+        method->arg_count = getMethodArgCount(method->descriptor);
+        method->slot_count = getMethodSlotCount(method->descriptor, method->access_flags);
+        method->method_info = mi;
+        (methods)[j++] = method;
+    }
+
+    return methods;
+}
+
+/* Calc static var size. */
 static U4 clazzCalcStaticVarSize(Clazz *clazz) {
     U2 i;
     U4 size;
@@ -146,6 +232,7 @@ static U4 clazzCalcInstanceVarSize(Clazz *clazz) {
     return (size + 7) & ~7;
 }
 
+
 /* Push into stack. */
 static void clazzPushStack(Clazz *clazz) {
     clazz->next = clazzStack;
@@ -186,6 +273,10 @@ static Clazz *clazzLoadFile(char *classname) {
     c->instance_field_count = getInstanceFieldCount(class);
     c->instance_fields = getInstanceFields(class, c->instance_field_count);
     c->instance_var_size = clazzCalcInstanceVarSize(c);
+    c->static_method_count = getStaticMethodCount(class);
+    c->static_methods = getStaticMethods(class, c->static_method_count);
+    c->instance_method_count = getInstanceMethodCount(class);
+    c->instance_methods = getInstanceMethods(class, c->instance_method_count);
     
     clazzPushStack(c);
     return c;

@@ -1,6 +1,7 @@
 #ifndef __CLAZZ_H__
 #define __CLAZZ_H__
 
+#include "class.h"
 #include "data.h"
 
 typedef struct Field {
@@ -10,6 +11,15 @@ typedef struct Field {
     U4                  offset;
     FieldInfo           *field_info;
 } Field;
+
+typedef struct Method {
+    U2                  access_flags;
+    char                *name;
+    char                *descriptor;
+    U2                  arg_count;
+    U2                  slot_count;
+    MethodInfo          *method_info;
+} Method;
 
 typedef struct Clazz {
     char                *className;
@@ -24,6 +34,10 @@ typedef struct Clazz {
     U2                  instance_field_count;
     struct Field        **instance_fields;
     U4                  instance_var_size;
+    U2                  static_method_count;
+    struct Method       **static_methods;
+    U2                  instance_method_count;
+    struct Method       **instance_methods;
 } Clazz;
 
 typedef struct JavaObjectHeader {

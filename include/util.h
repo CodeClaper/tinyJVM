@@ -10,3 +10,5 @@ RunMode runMode(char *name);
 void seterror(char *format, ...);
 void error(char *format, ...);
 U4 getTypeSize(char type);
+U2 getMethodArgCount(char *descriptor);
+U2 getMethodSlotCount(char *descriptor, U2 flags);
