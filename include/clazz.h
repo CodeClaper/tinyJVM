@@ -54,6 +54,7 @@ typedef struct JavaArrayObject {
 void clazzLoadObject();
 Clazz *clazzLoad(char *classname);
 Field *clazzFindField(Clazz *clazz, char *name, char *type);
+Method *clazzFindMethod(Clazz *clazz, char *name, char *type);
 void clazzSetStaticVar(Clazz *clazz, Field *field, Value v);
 Value clazzGetStaticVar(Clazz *clazz, Field *field);
 void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v);

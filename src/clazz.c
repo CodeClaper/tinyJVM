@@ -321,6 +321,28 @@ Field *clazzFindField(Clazz *clazz, char *name, char *type) {
     return NULL;
 }
 
+/* Find method. */
+Method *clazzFindMethod(Clazz *clazz, char *name, char *type) {
+    U2 i;
+    Method *method;
+    
+    /* Find in static methods. */
+    for (i = 0; i < clazz->static_method_count; i++) {
+        method = clazz->static_methods[i];
+        if (strcmp(name, method->name) == 0 && strcmp(type, method->descriptor) == 0)
+            return method;
+    }
+
+    /* Find in instance methods. */
+    for (i = 0; i < clazz->instance_method_count; i++) {
+        method = clazz->instance_methods[i];
+        if (strcmp(name, method->name) == 0 && strcmp(type, method->descriptor) == 0)
+            return method;
+    }
+
+    return NULL;
+}
+
 /* Set static var. */
 void clazzSetStaticVar(Clazz *clazz, Field *field, Value v) {
     char *dest;
