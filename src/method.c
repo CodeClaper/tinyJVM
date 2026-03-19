@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "method.h"
 #include "data.h"
 #include "instruct.h"
@@ -46,12 +47,14 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     if (newframe == NULL) error("Out of memory"); 
 
     while (newframe->pc < code->code_length) {
-        INSTRUCT instruct = getInstruct(code->code[newframe->pc++]);
+        U1 instruction = code->code[newframe->pc++];
+        INSTRUCT instruct = getInstruct(instruction);
         if (instruct == NULL) error("Not found instruct.");
         if ((ret = instruct(newframe)) == RETURN_OPERAND) {
             v = frameStatckPop(newframe);
             frameStatckPush(frame, v);
         }
+        printf("Insruct: %s executed.\n", getOpName(instruction));
     }
     
     framePop();

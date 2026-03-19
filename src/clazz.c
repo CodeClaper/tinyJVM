@@ -296,3 +296,69 @@ Value clazzGetStaticVar(Clazz *clazz, Field *field) {
     return v;
 }
 
+/* Set instance var. */ 
+void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v) {
+    char *dest;
+
+    dest = (char *)obj + sizeof(JavaObject) + field->offset;
+    switch (field->descriptor[0]) {
+        case 'Z': case 'B':
+            memcpy(dest, &v.i, 1);
+            break;
+        case 'C': case 'S':
+            memcpy(dest, &v.i, 2);
+            break;
+        case 'I': 
+            memcpy(dest, &v.i, 4);
+            break;
+        case 'F':
+            memcpy(dest, &v.f, 4);
+            break;
+        case 'J': 
+            memcpy(dest, &v.l, 8);
+            break;
+        case 'D':
+            memcpy(dest, &v.d, 8);
+            break;
+        case 'L': case '[':
+            memcpy(dest, &v.h->obj, 8);
+            break;
+    }
+}
+
+/* Get instance var. */
+Value clazzGetInstanceVar(JavaObject *obj, Field *field) {
+    Value v;
+    char *dest;
+ 
+    dest = (char *)obj + sizeof(JavaObject) + field->offset;
+    switch (field->descriptor[0]) {
+        case 'Z': case 'B':
+            memcpy(&v.i, dest, 1);
+            break;
+        case 'C': case 'S':
+            memcpy(&v.i, dest, 2);
+            break;
+        case 'I': 
+            memcpy(&v.i, dest, 4);
+            break;
+        case 'F':
+            memcpy(&v.f, dest, 4);
+            break;
+        case 'J': 
+            memcpy(&v.l, dest, 8);
+            break;
+        case 'D':
+            memcpy(&v.d, dest, 8);
+            break;
+        case 'L': case '[':
+            memcpy(&v.h->obj, dest, 8);
+            break;
+        default:
+            v.i = 0;
+            break;
+    }
+
+    return v;
+}
+

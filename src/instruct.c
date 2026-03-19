@@ -45,6 +45,8 @@ static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
 static int op_putstatic(Frame *frame);
+static int op_getfield(Frame *frame);
+static int op_putfield(Frame *frame);
 static int op_invokevirtual(Frame *frame);
 static int op_invokespecial(Frame *frame);
 static int op_invokestatic(Frame *frame);
@@ -647,8 +649,8 @@ static INSTRUCT instrtab[] = {
 	[RETURN]          = op_return,
 	[GETSTATIC]       = op_getstatic,
 	[PUTSTATIC]       = op_putstatic,
-	[GETFIELD]        = op_nop,
-	[PUTFIELD]        = op_nop,
+	[GETFIELD]        = op_getfield,
+	[PUTFIELD]        = op_putfield,
 	[INVOKEVIRTUAL]   = op_invokevirtual,
 	[INVOKESPECIAL]   = op_invokespecial,
 	[INVOKESTATIC]    = op_invokestatic,
@@ -1007,11 +1009,11 @@ static int op_putstatic(Frame *frame) {
     return NO_RETURN;
 }
 
-/* getfield: */
+/* getfield: get field value and push into stack. */
 static int op_getfield(Frame *frame) {
     U2 u;
     CONSTANT_Fieldref_info *fieldref;
-    Value v;
+    Value v, nv;
     char *classname, *name, *type;
     Clazz *clazz;
     Field *field;
@@ -1029,7 +1031,42 @@ static int op_getfield(Frame *frame) {
     field = clazzFindField(clazz, name, type);
     if (field == NULL) error("Not found field: %s in class: %s", name, classname);
     if (v.h == NULL || v.h->obj == NULL) error("java/lang/NullPointerException");
-    obj = (JavaObject *)v.h->obj;
+    obj = (JavaObject *)v.h->obj; 
+
+    /* Get instance var and push into stack. */
+    nv = clazzGetInstanceVar(obj, field);
+    frameStatckPush(frame, nv);
+
+    return NO_RETURN;
+}
+
+/* putfield: get field value and push into stack. */
+static int op_putfield(Frame *frame) {
+    U2 u;
+    CONSTANT_Fieldref_info *fieldref;
+    Value v, nv;
+    char *classname, *name, *type;
+    Clazz *clazz;
+    Field *field;
+    JavaObject *obj;
+
+    v = frameStatckPop(frame);
+    u = frame->code->code[frame->pc++] << 8;
+    u |= frame->code->code[frame->pc++];
+    fieldref = &frame->class->constant_pool[u]->info.fieldref_info;
+    classname = classGetClassName(frame->class, fieldref->class_index);
+    name = classGetNameAndTypeForName(frame->class, fieldref->name_type_index);
+    type = classGetNameAndTypeForType(frame->class, fieldref->name_type_index);
+    clazz = clazzLoad(classname);
+    if (clazz == NULL) error("Load clazz: %s fail.", classname);
+    field = clazzFindField(clazz, name, type);
+    if (field == NULL) error("Not found field: %s in class: %s", name, classname);
+    if (v.h == NULL || v.h->obj == NULL) error("java/lang/NullPointerException");
+    obj = (JavaObject *)v.h->obj; 
+
+    /* Pop value and Set instance var. */
+    nv = frameStatckPop(frame);
+    clazzSetInstanceVar(obj, field, nv);
 
     return NO_RETURN;
 }

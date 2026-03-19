@@ -42,5 +42,7 @@ Clazz *clazzLoad(char *classname);
 Field *clazzFindField(Clazz *clazz, char *name, char *type);
 void clazzSetStaticVar(Clazz *clazz, Field *field, Value v);
 Value clazzGetStaticVar(Clazz *clazz, Field *field);
+void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v);
+Value clazzGetInstanceVar(JavaObject *obj, Field *field);
 
 #endif // __CLAZZ_H__
