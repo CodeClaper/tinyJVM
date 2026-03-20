@@ -1118,7 +1118,7 @@ static int op_invokespecial(Frame *frame) {
         if (initMethodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR) 
             error("could not find method %s in class %s.", name, classname);
     } else {
-        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR) 
+        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC | ACC_METHOD_PRIVATE | ACC_METHOD_PROTECTED) == ERR) 
             error("could not find method %s in class %s.", name, classname);
     }
     
