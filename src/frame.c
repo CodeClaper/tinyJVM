@@ -53,7 +53,7 @@ void frameStatckPush(Frame *frame, Value value) {
 
 /* Pop value from frame stack. */
 Value frameStatckPop(Frame *frame) {
-    if (frame->nstack == 0) seterror("ASDA");
+    if (frame->nstack == 0) error("Stack is empty now.");
     return frame->stacks[--frame->nstack];
 }
 

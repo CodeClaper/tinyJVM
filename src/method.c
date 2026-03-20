@@ -4,6 +4,7 @@
 #include "class.h"
 #include "clazz.h"
 #include "data.h"
+#include "frame.h"
 #include "instruct.h"
 #include "util.h"
 
@@ -32,6 +33,7 @@ int initMethodCall(ClassFile *class, Frame *frame, char *name, char *descriptor,
 
 /* Invoke method. */
 int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 flags) {
+    I2 i;
     char *classname;
     Clazz *clazz;
     MethodInfo *mi;
@@ -54,10 +56,13 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     newframe = framePush(class, code->max_locals, code->max_stack, code);
     if (newframe == NULL) error("Out of memory"); 
     method = clazzFindMethod(clazz, name, descriptor);
-    if (method == NULL) 
-        error("Not found method: %s in class: %s", name, classname);
+    if (method == NULL) error("Not found method: %s in class: %s", name, classname);
+    for (i = method->slot_count - 1; i >= 0; i--) {
+        if (frame->nstack == 0)
+            printf("BIngo");
+        newframe->locals[i] = frameStatckPop(frame);
+    }
     
-    printf(">>>>>>>>>> Begin excute method: %s >>>>>>>>>>>>\n", name);
     while (newframe->pc < code->code_length) {
         U1 instruction = code->code[newframe->pc++];
         INSTRUCT instruct = getInstruct(instruction);
@@ -68,7 +73,6 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
         }
         printf("Insruct: %s executed.\n", getOpName(instruction));
     }
-    printf("<<<<<<<< Method: %s executed.<<<<<<<<<<<<<<<<<\n", name);
     
     framePop();
     return 0;
