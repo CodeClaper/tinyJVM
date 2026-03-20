@@ -158,8 +158,10 @@ U2 getMethodSlotCount(char *descriptor, U2 flags) {
     
     while (*p != ')') {
         if (*p == 'J' || *p == 'D') nslots += 2;
-        else if (*p == 'L') nslots += 1;
-        else if (*p == '[') {
+        else if (*p == 'L') {
+            nslots += 1;
+            while (*p != ';') p++;
+        } else if (*p == '[') {
             nslots += 1;
             while (*p == '[') p++;
             if (*p == 'L') {
