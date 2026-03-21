@@ -10,6 +10,7 @@
 #include "method.h"
 #include "native.h"
 #include "clazz.h"
+#include "heap.h"
 
 struct JavaStates javaStates;
 
@@ -58,13 +59,60 @@ oom:
     exit(EXIT_FAILURE);
 }
 
-static void java(void) {
+static JavaObject *createJavaStringInstance(const char *str) {
+    U2 i;
+    size_t len;
+    Clazz *string_clazz, *char_array_clazz;
+    Value v;
+    JavaObject *obj;
+    JavaArrayObject *array;
+    Field *filed;
+    
+
+    len = strlen(str);
+    string_clazz = clazzLoad("java/lang/String");
+    obj = newObj(string_clazz);
+    char_array_clazz = clazzLoad("[C");
+    v.h = heapNewArray(char_array_clazz, len);
+    array = v.h->obj;
+    
+    for (i = 0; i < len; i++) {
+        ((char *)array->data)[i] = str[i];
+    }
+
+    filed = clazzFindField(string_clazz, "value", "");
+    clazzSetInstanceVar(obj, filed, v);
+
+    return obj;
+}
+
+static void prepareBeforeMain(int argc, char *argv[], Frame *frame) {
+    int i;
+    Value v;
+    Clazz *clazz;
+    JavaArrayObject *array;
+
+    clazz = clazzLoad("java/lang/String");
+    if (clazz == NULL) error("Load clazz: java/lang/String fail."); 
+    v.h = heapNewArray(clazz, argc);
+    array = v.h->obj;
+
+    for (i = 0; i < argc; i++) {
+        array->data[i] = createJavaStringInstance(argv[i]);
+    }
+
+    frameStatckPush(frame, v);
+}
+
+static void java(int argc, char *argv[]) {
     ClassFile *class;
     Frame *frame;
 
     class = loadClass(javaStates.class_name);
     if (class == NULL) error("Load class fail.");
     frame = framePush(class, 0, 1, NULL);
+    
+    prepareBeforeMain(argc, argv, frame);
     if (methodCall(class, frame, "main", "([Ljava/lang/String;)V", (ACC_METHOD_PUBLIC | ACC_METHOD_STATIC)) == ERR) 
         error("Main method not found in class A, please define the main method as: \n   public static void main(String[] args)");
 }
@@ -78,6 +126,6 @@ int main(int argc, char *argv[]) {
     if (argc < 2) usage();
 	atexit(afterexist);
     init(argc, argv);
-    java();
+    java(argc, argv);
     return EXIT_SUCCESS;
 }

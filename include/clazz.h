@@ -49,6 +49,7 @@ typedef struct JavaObjectHeader JavaObject;
 typedef struct JavaArrayObject {
     JavaObjectHeader    header;
     I4                  length;
+    JavaObject          **data;
 } JavaArrayObject;
 
 void clazzLoadObject();
