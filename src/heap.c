@@ -54,7 +54,7 @@ Heap *heapNewArray(Clazz *clazz, U2 length) {
 
     entry = salloc(sizeof(Heap));
     if (entry == NULL) seterror("Out of memory");
-    entry->obj = newArray(clazz,  length);
+    entry->obj = newArray(clazz, length);
     heapPushStack(entry);
 
     return entry;
