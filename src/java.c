@@ -80,7 +80,8 @@ static JavaObject *createJavaStringInstance(const char *str) {
         ((char *)array->data)[i] = str[i];
     }
 
-    filed = clazzFindField(string_clazz, "value", "");
+    filed = clazzFindField(string_clazz, "value", "[C");
+    if (filed == NULL) error("Not find value field in java/lang/String.");
     clazzSetInstanceVar(obj, filed, v);
 
     return obj;

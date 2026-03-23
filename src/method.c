@@ -58,8 +58,6 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     method = clazzFindMethod(clazz, name, descriptor);
     if (method == NULL) error("Not found method: %s in class: %s", name, classname);
     for (i = method->slot_count - 1; i >= 0; i--) {
-        if (frame->nstack == 0)
-            printf("BIngo");
         newframe->locals[i] = frameStatckPop(frame);
     }
     
@@ -71,6 +69,7 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
             v = frameStatckPop(newframe);
             frameStatckPush(frame, v);
         }
+        fprintf(stdout, "Instruct %s executed.\n", getOpName(instruction));
     }
     
     framePop();

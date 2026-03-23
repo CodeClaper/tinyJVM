@@ -7,6 +7,16 @@
 #include "util.h"
 
 static Clazz *clazzStack = NULL;
+static Clazz builtin[] = {
+    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[B", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[S", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[I", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[J", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[F", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[D", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+};
 
 /* Get static field count. */
 static U2 getStaticFieldCount(ClassFile *class) {
@@ -239,6 +249,17 @@ static void clazzPushStack(Clazz *clazz) {
     clazzStack = clazz;
 }
 
+static Clazz *clazzFindBuiltIn(char *classname) {
+    U2 i;
+
+    for (i = 0; i < LEN(builtin); i++) {
+        if (strcmp(builtin[i].className, classname) == 0)
+            return &builtin[i];
+    }
+
+    return NULL;
+}
+
 /* Find clazz in cache.
  * Return NULL if not foud. */
 static Clazz *clazzFindInCache(char *classname) {
@@ -294,7 +315,9 @@ void clazzLoadObject() {
 
 /* Load the clazz. */
 Clazz *clazzLoad(char *classname) {
-    Clazz *c = clazzFindInCache(classname);
+    Clazz *c = clazzFindBuiltIn(classname);
+    if (c != NULL) return c;
+    c = clazzFindInCache(classname);
     if (c != NULL) return c;
     else return clazzLoadFile(classname); 
 }

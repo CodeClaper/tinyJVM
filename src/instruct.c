@@ -53,6 +53,7 @@ static int op_invokestatic(Frame *frame);
 static int op_new(Frame *frame);
 static int op_dup(Frame *frame);
 static int op_anewarray(Frame *frame);
+static int op_arraylength(Frame *frame);
 static int op_ifnonnull(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
@@ -659,7 +660,7 @@ static INSTRUCT instrtab[] = {
 	[NEW]             = op_new,
 	[NEWARRAY]        = op_nop,
 	[ANEWARRAY]       = op_anewarray,
-	[ARRAYLENGTH]     = op_nop,
+	[ARRAYLENGTH]     = op_arraylength,
 	[ATHROW]          = op_nop,
 	[CHECKCAST]       = op_nop,
 	[INSTANCEOF]      = op_nop,
@@ -1196,6 +1197,19 @@ static int op_anewarray(Frame *frame) {
     nv.h = heapNewArray(clazz, count);
 
     frameStatckPush(frame, nv);
+    return NO_RETURN;
+}
+
+/* arraylength: get length of array and push into stack. */
+static int op_arraylength(Frame *frame) {
+    Value v;
+    JavaArrayObject *jar;
+    
+    v = frameStatckPop(frame);
+    jar = v.h->obj;
+    v.i = jar->length;
+    frameStatckPush(frame, v);
+
     return NO_RETURN;
 }
 
