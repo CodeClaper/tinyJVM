@@ -49,7 +49,7 @@ int methodCall(ClassFile *class, Frame *frame, char *name, char *descriptor, U2 
     if (clazz == NULL) error("Load clazz: %s fail.", classname);
     mi = classGetMethod(class, name, descriptor);
     if (mi == NULL) return ERR;
-    if (!(mi->access_flags & flags)) return ERR;
+    if (!(mi->access_flags == ACC_METHOD_DEFAULT || mi->access_flags & flags)) return ERR;
     attr = classGetAttr(mi->attributes, mi->attribute_count, ATT_Code);
     if (attr == NULL) return ERR;
     code = &attr->info.code;

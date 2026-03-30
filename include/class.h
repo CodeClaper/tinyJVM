@@ -19,6 +19,7 @@
 /* ==========================================
  * Method Access Flags.
  * ========================================== */
+#define ACC_METHOD_DEFAULT      0x0000
 #define ACC_METHOD_PUBLIC       0x0001
 #define ACC_METHOD_PRIVATE      0x0002
 #define ACC_METHOD_PROTECTED    0x0004
