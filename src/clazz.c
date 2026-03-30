@@ -8,15 +8,16 @@
 
 static Clazz *clazzStack = NULL;
 static Clazz builtin[] = {
-    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[B", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[S", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[I", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[J", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[F", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
-    {"[D", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0, NULL, 0, NULL},
+    {"[B", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL}, // byte
+    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL}, // char
+    {"[D", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL}, // double
+    {"[F", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL}, // float
+    {"[I", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL}, // int
+    {"[J", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL}, // long
+    {"[S", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL}, // short
+    {"[Z", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL}, // boolean
 };
+
 
 /* Get static field count. */
 static U2 getStaticFieldCount(ClassFile *class) {
@@ -258,6 +259,21 @@ static Clazz *clazzFindBuiltIn(char *classname) {
     }
 
     return NULL;
+}
+
+/* Find builtin clazz by array type code. */
+Clazz *clazzFindBuildInByAtype(U1 atype) {
+    switch (atype) {
+        case T_BYTE: return &builtin[0];
+        case T_CHAR: return &builtin[1];
+        case T_LONG: return &builtin[2];
+        case T_DOUBLE: return &builtin[3];
+        case T_FLOAT: return &builtin[4];
+        case T_INT: return &builtin[5];
+        case T_SHORT: return &builtin[6];
+        case T_BOOLEAN: return &builtin[7];
+        default: return NULL;
+    }
 }
 
 /* Find clazz in cache.
