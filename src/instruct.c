@@ -23,6 +23,9 @@ static int op_iconst_2(Frame *frame);
 static int op_iconst_3(Frame *frame);
 static int op_iconst_4(Frame *frame);
 static int op_iconst_5(Frame *frame);
+static int op_fconst_0(Frame *frame);
+static int op_fconst_1(Frame *frame);
+static int op_fconst_2(Frame *frame);
 static int op_pop(Frame *frame);
 static int op_pop2(Frame *frame);
 static int op_bipush(Frame *frame);
@@ -494,9 +497,9 @@ static INSTRUCT instrtab[] = {
 	[ICONST_5]        = op_iconst_5,
 	[LCONST_0]        = op_nop,
 	[LCONST_1]        = op_nop,
-	[FCONST_0]        = op_nop,
-	[FCONST_1]        = op_nop,
-	[FCONST_2]        = op_nop,
+	[FCONST_0]        = op_fconst_0,
+	[FCONST_1]        = op_fconst_1,
+	[FCONST_2]        = op_fconst_2,
 	[DCONST_0]        = op_nop,
 	[DCONST_1]        = op_nop,
 	[BIPUSH]          = op_bipush,
@@ -801,6 +804,32 @@ static int op_iconst_5(Frame *frame) {
     return NO_RETURN;
 }
 
+/* fconst_0: push float 0 into stack. */
+static int op_fconst_0(Frame *frame) {
+    Value v;
+    v.i = 0.0;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fconst_1: push float 1 into stack. */
+static int op_fconst_1(Frame *frame) {
+    Value v;
+    v.i = 1.0;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fconst_2: push float 2 into stack. */
+static int op_fconst_2(Frame *frame) {
+    Value v;
+    v.i = 2.0;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
 
 /* pop: pop the top op statck value. */
 static int op_pop(Frame *frame) {
@@ -1317,23 +1346,6 @@ static int op_arraylength(Frame *frame) {
     return NO_RETURN;
 }
 
-/* ifnonnull: jump if reference not null. */
-static int op_ifnonnull(Frame *frame) {
-    I2 i;
-    U2 base;
-    Value v;
-
-    base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
-    v = frameStatckPop(frame);
-    
-    if (v.h == NULL) frame->pc = base + i;
-    else frame->pc += 2;
-
-    return NO_RETURN;
-}
-
 
 /* ifeq: branch if int value comparison with zero.*/
 static int op_ifeq(Frame *frame) {
@@ -1456,3 +1468,21 @@ static int op_return(Frame *frame) {
     UNUSED(frame);
     return RETURN_VOID;
 }
+
+/* ifnonnull: jump if reference not null. */
+static int op_ifnonnull(Frame *frame) {
+    I2 i;
+    U2 base;
+    Value v;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.h == NULL) frame->pc = base + i;
+    else frame->pc += 2;
+
+    return NO_RETURN;
+}
+
