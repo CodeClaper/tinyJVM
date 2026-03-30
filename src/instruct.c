@@ -27,21 +27,22 @@ static int op_pop(Frame *frame);
 static int op_pop2(Frame *frame);
 static int op_bipush(Frame *frame);
 static int op_sipush(Frame *frame);
-static int op_istore_1(Frame *frame);
-static int op_istore_2(Frame *frame);
-static int op_istore_3(Frame *frame);
 static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
-static int op_astore_0(Frame *frame);
-static int op_astore_1(Frame *frame);
-static int op_astore_2(Frame *frame);
-static int op_astore_3(Frame *frame);
 static int op_aload_0(Frame *frame);
 static int op_aload_1(Frame *frame);
 static int op_aload_2(Frame *frame);
 static int op_aload_3(Frame *frame);
 static int op_aalod(Frame *frame);
+static int op_istore_1(Frame *frame);
+static int op_istore_2(Frame *frame);
+static int op_istore_3(Frame *frame);
+static int op_astore_0(Frame *frame);
+static int op_astore_1(Frame *frame);
+static int op_astore_2(Frame *frame);
+static int op_astore_3(Frame *frame);
+static int op_castore(Frame *frame);
 static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
@@ -557,7 +558,7 @@ static INSTRUCT instrtab[] = {
 	[DASTORE]         = op_nop,
 	[AASTORE]         = op_nop,
 	[BASTORE]         = op_nop,
-	[CASTORE]         = op_nop,
+	[CASTORE]         = op_castore,
 	[SASTORE]         = op_nop,
 	[POP]             = op_pop,
 	[POP2]            = op_pop2,
@@ -807,7 +808,7 @@ static int op_pop2(Frame *frame) {
 /* bipush: push one byte to op stack. */
 static int op_bipush(Frame *frame) {
     Value v;
-    v.i = frame->code->code[frame->pc++];
+    v.i = (I1)frame->code->code[frame->pc++];
     frameStatckPush(frame, v);
     return NO_RETURN;
 }
@@ -878,6 +879,25 @@ static int op_astore_3(Frame *frame) {
     Value v;
     v = frameStatckPop(frame);
     frameLocalStore(frame, 3, v);
+    return NO_RETURN;
+}
+
+/* castore: pop char value and store at char array. */
+static int op_castore(Frame *frame) {
+    Value vv, vi, va;
+    JavaArrayObject *arr;
+    
+    vv = frameStatckPop(frame);
+    vi = frameStatckPop(frame);
+    va = frameStatckPop(frame);
+    
+    if (va.h == NULL || va.h->obj == NULL) error("NullPointerException");
+    arr = (JavaArrayObject *)va.h->obj;
+    if (vi.i < 0) error("NegativeArraySizeException");
+    if (vi.i > arr->length) error("ArrayIndexOutOfBoundsException");
+
+    clazzSetArrayInstanceVar(arr, vi.i, vv);
+
     return NO_RETURN;
 }
 
@@ -1195,7 +1215,8 @@ static int op_new(Frame *frame) {
 static int op_dup(Frame *frame) {
     Value v;
 
-    v = frame->stacks[frame->nstack];
+    v = frameStatckPop(frame);
+    frameStatckPush(frame, v);
     frameStatckPush(frame, v);
     return NO_RETURN;
 }

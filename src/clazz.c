@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include "clazz.h"
@@ -5,6 +6,7 @@
 #include "data.h"
 #include "mmr.h"
 #include "util.h"
+#include "heap.h"
 
 static Clazz *clazzStack = NULL;
 static Clazz builtin[] = {
@@ -420,25 +422,26 @@ Value clazzGetStaticVar(Clazz *clazz, Field *field) {
     dest = clazz->static_vars + field->offset;
     switch (field->descriptor[0]) {
         case 'Z': case 'B':
-            memcpy(&v.i, dest, 1);
+            v.i = *(I4 *) dest;
             break;
         case 'C': case 'S':
-            memcpy(&v.i, dest, 2);
+            v.i = *(I4 *) dest;
             break;
         case 'I': 
-            memcpy(&v.i, dest, 4);
+            v.i = *(I4 *) dest;
             break;
         case 'F':
-            memcpy(&v.f, dest, 4);
+            v.f = *(float *) dest;
             break;
         case 'J': 
-            memcpy(&v.l, dest, 8);
+            v.l = *(long *) dest;
             break;
         case 'D':
+            v.d = *(double *) dest;
             memcpy(&v.d, dest, 8);
             break;
         case 'L': case '[':
-            memcpy(&v.h->obj, dest, 8);
+            v.h = heapObj((void *)dest);
             break;
         default:
             v.i = 0;
@@ -486,30 +489,77 @@ Value clazzGetInstanceVar(JavaObject *obj, Field *field) {
     dest = (char *)obj + sizeof(JavaObject) + field->offset;
     switch (field->descriptor[0]) {
         case 'Z': case 'B':
-            memcpy(&v.i, dest, 1);
+            v.i = *(I4 *) dest;
             break;
         case 'C': case 'S':
-            memcpy(&v.i, dest, 2);
+            v.i = *(I4 *) dest;
             break;
         case 'I': 
-            memcpy(&v.i, dest, 4);
+            v.i = *(I4 *) dest;
             break;
         case 'F':
-            memcpy(&v.f, dest, 4);
+            v.f = *(float *) dest;
             break;
         case 'J': 
-            memcpy(&v.l, dest, 8);
+            v.l = *(long *) dest;
             break;
         case 'D':
+            v.d = *(double *) dest;
             memcpy(&v.d, dest, 8);
             break;
         case 'L': case '[':
-            memcpy(&v.h->obj, dest, 8);
+            v.h = heapObj((void *)dest);
             break;
         default:
             v.i = 0;
             break;
     }
+
+    return v;
+}
+
+/* Set Array instance var. */
+void clazzSetArrayInstanceVar(JavaArrayObject *arr, U2 index, Value v) {
+    Clazz *clazz;
+    JavaObject *obj;
+    char *dest;
+
+    clazz = arr->header.clazz;
+    obj = arr->data[index];
+    dest = (char *)obj + sizeof(JavaObject);
+    
+    if (strcmp(clazz->className, "[B")) *(I1 *)dest = v.i & 0x00FF; 
+    else if (strcmp(clazz->className, "[C")) *(char *)dest = v.i & 0xFFFF; 
+    else if (strcmp(clazz->className, "[D")) *(double *)dest = v.d; 
+    else if (strcmp(clazz->className, "[F")) *(float *)dest = v.f; 
+    else if (strcmp(clazz->className, "[I")) *(I4 *)dest = v.i; 
+    else if (strcmp(clazz->className, "[J")) *(I8 *)dest = v.l; 
+    else if (strcmp(clazz->className, "[S")) *(I2 *)dest = v.i & 0xFFFF; 
+    else if (strcmp(clazz->className, "[Z")) *(bool *)dest = v.i & 0x00FF; 
+    else arr->data[index] = v.h->obj;
+}
+
+
+/* Set Array instance var. */
+Value clazzGetArrayInstanceVar(JavaArrayObject *arr, U2 index) {
+    Value v;
+    Clazz *clazz;
+    JavaObject *obj;
+    char *dest;
+
+    clazz = arr->header.clazz;
+    obj = arr->data[index];
+    dest = (char *)obj + sizeof(JavaObject);
+    
+    if (strcmp(clazz->className, "[B")) v.i = *(I4 *)dest; 
+    else if (strcmp(clazz->className, "[C")) v.i = *(I4 *)dest; 
+    else if (strcmp(clazz->className, "[D")) v.d = *(double *)dest; 
+    else if (strcmp(clazz->className, "[F")) v.f = *(float *)dest; 
+    else if (strcmp(clazz->className, "[I")) v.i = *(I4 *)dest; 
+    else if (strcmp(clazz->className, "[J")) v.l = *(I8 *)dest; 
+    else if (strcmp(clazz->className, "[S")) v.i = *(I4 *)dest; 
+    else if (strcmp(clazz->className, "[Z")) v.i = *(I4 *)dest; 
+    else v.h = heapObj(obj);
 
     return v;
 }

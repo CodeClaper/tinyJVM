@@ -61,5 +61,7 @@ void clazzSetStaticVar(Clazz *clazz, Field *field, Value v);
 Value clazzGetStaticVar(Clazz *clazz, Field *field);
 void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v);
 Value clazzGetInstanceVar(JavaObject *obj, Field *field);
+void clazzSetArrayInstanceVar(JavaArrayObject *arr, U2 index, Value v);
+Value clazzGetArrayInstanceVar(JavaArrayObject *arr, U2 index);
 
 #endif // __CLAZZ_H__
