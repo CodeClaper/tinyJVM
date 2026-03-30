@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <string.h>
 #include "instruct.h"
 #include "data.h"
@@ -1192,7 +1191,6 @@ static int op_putfield(Frame *frame) {
 static int op_invokevirtual(Frame *frame) {
     U2 u;
     ClassFile *class;
-    NativeClassType ntype;
     CONSTANT_Methodref_info *method_ref;
     char *classname, *name, *type;
     MethodInfo *mi;
@@ -1206,8 +1204,8 @@ static int op_invokevirtual(Frame *frame) {
     class = loadClass(classname);
     mi = classGetMethod(class, name, type);
     
-    if (mi->access_flags & ACC_METHOD_NATIVE || (ntype = nativeClassFind(classname)) != NONE_CLASS) {
-        if (nativeMethodCall(frame, ntype, name, type) == ERR) 
+    if (mi->access_flags & ACC_METHOD_NATIVE) {
+        if (nativeMethodCall(frame, classname, name, type) == ERR) 
             error("error invoking native method %s", name);
     } else if (class != NULL) {
         if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)
@@ -1249,7 +1247,7 @@ static int op_invokespecial(Frame *frame) {
 static int op_invokestatic(Frame *frame) {
     U2 u;
     ClassFile *class;
-    NativeClassType ntype;
+    MethodInfo *mi;
     CONSTANT_Methodref_info *method_ref;
     char *classname, *name, *type;
 
@@ -1260,9 +1258,10 @@ static int op_invokestatic(Frame *frame) {
     name = classGetNameAndTypeForName(frame->class, method_ref->name_type_index);
     type = classGetNameAndTypeForType(frame->class, method_ref->name_type_index);
     class = loadClass(classname);
+    mi = classGetMethod(class, name, type);
     
-    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
-        if (nativeMethodCall(frame, ntype, name, type) == ERR) 
+    if (mi->access_flags & ACC_METHOD_NATIVE) {
+        if (nativeMethodCall(frame, classname, name, type) == ERR) 
             error("error invoking native method %s", name);
     } else if ((class = loadClass(classname)) != NULL) {
         if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)

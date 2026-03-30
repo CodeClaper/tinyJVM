@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "native.h"
 #include "data.h"
 #include "frame.h"
+#include "util.h"
 
 
 static void nativePrintln(Frame *frame, char *type);
@@ -14,6 +14,7 @@ static struct {
     NativeClassType nclass;
 } nclasstab[] = {
     {"java/lang/System",        LANG_SYSTEM},
+    {"java/lang/Class",         LANG_CLASS},
     {"java/io/PrintStream",     IO_PRINTSTREAM},
     {NULL,                      NONE_CLASS}
 };
@@ -23,6 +24,9 @@ static struct NativeMethod {
     void (*method)(Frame *frame, char *type);
 } *nmethodtab[] = {
     [LANG_SYSTEM] = (struct NativeMethod[]) {
+        { "registerNatives", nativeRegisterNatives}
+    },
+    [LANG_CLASS] = (struct NativeMethod[]) {
         { "registerNatives", nativeRegisterNatives}
     },
     [IO_PRINTSTREAM] = (struct NativeMethod[]) {
@@ -82,8 +86,15 @@ void *nativeJavaObj(NativeClassType ntype, char *objname, char *objtype) {
 }
 
 /* Invok native method. */
-int nativeMethodCall(Frame *frame, NativeClassType ntype, char *name, char *type) {
-    for (U2 i = 0; nmethodtab[ntype][i].name != NULL; i++) {
+int nativeMethodCall(Frame *frame, char *classname, char *name, char *type) {
+    U2 i;
+    NativeClassType ntype;
+
+    ntype = nativeClassFind(classname);
+    if (ntype == NONE_CLASS) 
+        error("Not found native method: %s in class: %s", name, classname);
+
+    for (i = 0; nmethodtab[ntype][i].name != NULL; i++) {
         if (strcmp(name, nmethodtab[ntype][i].name) == 0) {
             nmethodtab[ntype][i].method(frame, type);
             return OK;
