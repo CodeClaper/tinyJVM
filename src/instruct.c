@@ -64,6 +64,8 @@ static int op_dup(Frame *frame);
 static int op_newarray(Frame *frame);
 static int op_anewarray(Frame *frame);
 static int op_arraylength(Frame *frame);
+static int op_fcmpl(Frame *frame);
+static int op_fcmpg(Frame *frame);
 static int op_ifeq(Frame *frame);
 static int op_ifne(Frame *frame);
 static int op_iflt(Frame *frame);
@@ -635,8 +637,8 @@ static INSTRUCT instrtab[] = {
 	[I2C]             = op_nop,
 	[I2S]             = op_nop,
 	[LCMP]            = op_nop,
-	[FCMPL]           = op_nop,
-	[FCMPG]           = op_nop,
+	[FCMPL]           = op_fcmpl,
+	[FCMPG]           = op_fcmpg,
 	[DCMPL]           = op_nop,
 	[DCMPG]           = op_nop,
 	[IFEQ]            = op_ifeq,
@@ -1346,6 +1348,37 @@ static int op_arraylength(Frame *frame) {
     return NO_RETURN;
 }
 
+/* fcmpl: compare two floats. */
+static int op_fcmpl(Frame *frame) {
+    Value v1, v2, v;
+
+    v2 = frameStatckPop(frame);
+    v1 = frameStatckPop(frame);
+
+    if (v1.f > v2.f) v.i = 1;
+    else if (v1.f == v2.f) v.i = 0;
+    else if (v1.f < v2.f) v.i = -1;
+    else v.i = -1;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fcmpg: compare two floats. */
+static int op_fcmpg(Frame *frame) {
+    Value v1, v2, v;
+
+    v2 = frameStatckPop(frame);
+    v1 = frameStatckPop(frame);
+
+    if (v1.f > v2.f) v.i = 1;
+    else if (v1.f == v2.f) v.i = 0;
+    else if (v1.f < v2.f) v.i = -1;
+    else v.i = 1;
+
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
 
 /* ifeq: branch if int value comparison with zero.*/
 static int op_ifeq(Frame *frame) {
