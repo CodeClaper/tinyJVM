@@ -246,6 +246,28 @@ static U4 clazzCalcInstanceVarSize(Clazz *clazz) {
 }
 
 
+/* Calc instance field offset. 
+ * Return true if found the field in current clazz, otherwise, return false.
+ * */
+static bool clazzCalcInstanceFiledOffset(Clazz *clazz, Field *field, U4 *offset) {
+    U2 i;
+    Field *current;
+
+    if (clazz->super) {
+        if (clazzCalcInstanceFiledOffset(clazz->super, field, offset))
+            return true;
+    }
+
+    for (i = 0; i < clazz->instance_field_count; i++) {
+        current = clazz->instance_fields[i];
+        if (field == current) return true;
+        *offset += getTypeSize(current->descriptor[0]);
+    }
+
+    return false;
+}
+
+
 /* Push into stack. */
 static void clazzPushStack(Clazz *clazz) {
     clazz->next = clazzStack;
@@ -454,8 +476,12 @@ Value clazzGetStaticVar(Clazz *clazz, Field *field) {
 /* Set instance var. */ 
 void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v) {
     char *dest;
+    U4 offset = 0;
+    
+    if (!clazzCalcInstanceFiledOffset(obj->clazz, field, &offset))
+        error("Not find field: %s in class: %s", field->name, obj->clazz->className);
 
-    dest = (char *)obj + sizeof(JavaObject) + field->offset;
+    dest = (char *)obj + sizeof(JavaObject) + offset;
     switch (field->descriptor[0]) {
         case 'Z': case 'B':
             memcpy(dest, &v.i, 1);
@@ -485,8 +511,12 @@ void clazzSetInstanceVar(JavaObject *obj, Field *field, Value v) {
 Value clazzGetInstanceVar(JavaObject *obj, Field *field) {
     Value v;
     char *dest;
+    U4 offset = 0;
+    
+    if (!clazzCalcInstanceFiledOffset(obj->clazz, field, &offset))
+        error("Not find field: %s in class: %s", field->name, obj->clazz->className);
  
-    dest = (char *)obj + sizeof(JavaObject) + field->offset;
+    dest = (char *)obj + sizeof(JavaObject) + offset;
     switch (field->descriptor[0]) {
         case 'Z': case 'B':
             v.i = *(I4 *) dest;
