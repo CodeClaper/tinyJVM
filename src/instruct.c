@@ -63,6 +63,9 @@ static int op_dup(Frame *frame);
 static int op_newarray(Frame *frame);
 static int op_anewarray(Frame *frame);
 static int op_arraylength(Frame *frame);
+static int op_i2l(Frame *frame);
+static int op_i2f(Frame *frame);
+static int op_i2d(Frame *frame);
 static int op_fcmpl(Frame *frame);
 static int op_fcmpg(Frame *frame);
 static int op_ifeq(Frame *frame);
@@ -620,9 +623,9 @@ static INSTRUCT instrtab[] = {
 	[IXOR]            = op_nop,
 	[LXOR]            = op_nop,
 	[IINC]            = op_nop,
-	[I2L]             = op_nop,
-	[I2F]             = op_nop,
-	[I2D]             = op_nop,
+	[I2L]             = op_i2l,
+	[I2F]             = op_i2f,
+	[I2D]             = op_i2d,
 	[L2I]             = op_nop,
 	[L2F]             = op_nop,
 	[L2D]             = op_nop,
@@ -1345,6 +1348,39 @@ static int op_arraylength(Frame *frame) {
     v = frameStatckPop(frame);
     jar = v.h->obj;
     v.i = jar->length;
+    frameStatckPush(frame, v);
+
+    return NO_RETURN;
+}
+
+/* i2l: convet int to long. */
+static int op_i2l(Frame *frame) {
+    Value v;
+
+    v = frameStatckPop(frame);
+    v.f = v.i;
+    frameStatckPush(frame, v);
+
+    return NO_RETURN;
+}
+
+/* i2f: convet int to float. */
+static int op_i2f(Frame *frame) {
+    Value v;
+
+    v = frameStatckPop(frame);
+    v.f = v.i;
+    frameStatckPush(frame, v);
+
+    return NO_RETURN;
+}
+
+/* i2d: convet int to double. */
+static int op_i2d(Frame *frame) {
+    Value v;
+
+    v = frameStatckPop(frame);
+    v.d = v.i;
     frameStatckPush(frame, v);
 
     return NO_RETURN;
