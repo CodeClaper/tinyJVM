@@ -72,4 +72,14 @@ Heap *heapNull() {
     return entry;
 }
 
+/* Allocata heap enty which refer to given obj. */
+Heap *heapObj(JavaObject *obj) {
+    Heap *entry;
 
+    entry = salloc(sizeof(Heap));
+    if (entry == NULL) seterror("Out of memory");
+    entry->obj = obj;
+    heapPushStack(entry);
+
+    return entry;
+}

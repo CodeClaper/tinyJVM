@@ -41,6 +41,7 @@ static int op_aload_0(Frame *frame);
 static int op_aload_1(Frame *frame);
 static int op_aload_2(Frame *frame);
 static int op_aload_3(Frame *frame);
+static int op_aalod(Frame *frame);
 static int op_iadd(Frame *frame);
 static int op_ldc(Frame *frame);
 static int op_getstatic(Frame *frame);
@@ -520,7 +521,7 @@ static INSTRUCT instrtab[] = {
 	[LALOAD]          = op_nop,
 	[FALOAD]          = op_nop,
 	[DALOAD]          = op_nop,
-	[AALOAD]          = op_nop,
+	[AALOAD]          = op_aalod,
 	[BALOAD]          = op_nop,
 	[CALOAD]          = op_nop,
 	[SALOAD]          = op_nop,
@@ -931,6 +932,26 @@ static int op_aload_2(Frame *frame) {
 static int op_aload_3(Frame *frame) {
     Value v;
     v = frameLocalLoad(frame, 3);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* op_aalod: load reference from array. */
+static int op_aalod(Frame *frame) {
+    Value vi, va, v;
+    JavaArrayObject *arr;
+    JavaObject *obj;
+
+    vi = frameStatckPop(frame);
+    va = frameStatckPop(frame);
+    if (va.h == NULL || va.h->obj == NULL)
+        error("NullPointerException");
+    arr = (JavaArrayObject *)va.h->obj;
+    if (vi.i < 0 || vi.i > arr->length) 
+        error("ArrayIndexOutOfBoundsException");
+    obj = (arr->data)[vi.i];
+    v.h = heapObj(obj);
+
     frameStatckPush(frame, v);
     return NO_RETURN;
 }
