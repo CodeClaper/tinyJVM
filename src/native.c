@@ -8,6 +8,7 @@
 
 static void nativePrintln(Frame *frame, char *type);
 static void nativeRegisterNatives(Frame *frame, char *type) ;
+static void nativeGetPrimitiveClass(Frame *frame, char *type);
 
 static struct {
     char *name;
@@ -24,10 +25,11 @@ static struct NativeMethod {
     void (*method)(Frame *frame, char *type);
 } *nmethodtab[] = {
     [LANG_SYSTEM] = (struct NativeMethod[]) {
-        { "registerNatives", nativeRegisterNatives}
+        {"registerNatives", nativeRegisterNatives}
     },
     [LANG_CLASS] = (struct NativeMethod[]) {
-        { "registerNatives", nativeRegisterNatives}
+        {"registerNatives", nativeRegisterNatives},
+        {"getPrimitiveClass", nativeGetPrimitiveClass}
     },
     [IO_PRINTSTREAM] = (struct NativeMethod[]) {
         {"print", NULL},
@@ -60,6 +62,11 @@ static void nativeRegisterNatives(Frame *frame, char *type) {
     // Nothing todo.
 }
 
+
+static void nativeGetPrimitiveClass(Frame *frame, char *type) {
+
+}
+
 /* Find native class. */
 NativeClassType nativeClassFind(char *classname) {
     U2 i;
@@ -85,6 +92,7 @@ void *nativeJavaObj(NativeClassType ntype, char *objname, char *objtype) {
     return NULL;
 }
 
+
 /* Invok native method. */
 int nativeMethodCall(Frame *frame, char *classname, char *name, char *type) {
     U2 i;
@@ -100,5 +108,7 @@ int nativeMethodCall(Frame *frame, char *classname, char *name, char *type) {
             return OK;
         }
     }
+
+    error("Not found native method: %s in class: %s", name, classname);
     return ERR;
 }
