@@ -31,6 +31,23 @@ oom:
     exit(EXIT_FAILURE);
 }
 
+
+static void initJvmEnv() {
+    /* Bootstrap the Object clazz. */
+    clazzLoadObject();
+
+    ClassFile *class;
+    Frame *frame;
+
+    class = loadClass("java/lang/System");
+    if (class == NULL) error("Load class fail.");
+    frame = framePush(class, 0, 1, NULL);
+    
+    if (methodCall(class, frame, "initializeSystemClass", "()V", ACC_METHOD_STATIC) == ERR) 
+        error("Init jvm environment fail.");
+}
+
+
 /* Init java. */
 static void init(int argc, char *argv[]) {
     int i;
@@ -50,9 +67,7 @@ static void init(int argc, char *argv[]) {
         addClassPath(".");
 
     javaStates.mode = runMode(argv[0]);
-
-    /* Bootstrap the Object clazz. */
-    clazzLoadObject();
+    initJvmEnv();
     return;
 oom:
     seterror("Out of memory");
@@ -115,7 +130,7 @@ static void java(int argc, char *argv[]) {
     
     prepareBeforeMain(argc, argv, frame);
     if (methodCall(class, frame, "main", "([Ljava/lang/String;)V", (ACC_METHOD_PUBLIC | ACC_METHOD_STATIC)) == ERR) 
-        error("Main method not found in class A, please define the main method as: \n   public static void main(String[] args)");
+        error("Main method not found in class %s, please define the main method as: \n   public static void main(String[] args)", javaStates.class_name);
 }
 
 static void afterexist(void) {
