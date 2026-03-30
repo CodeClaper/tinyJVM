@@ -30,6 +30,10 @@ static int op_sipush(Frame *frame);
 static int op_iload_1(Frame *frame);
 static int op_iload_2(Frame *frame);
 static int op_iload_3(Frame *frame);
+static int op_fload_0(Frame *frame);
+static int op_fload_1(Frame *frame);
+static int op_fload_2(Frame *frame);
+static int op_fload_3(Frame *frame);
 static int op_aload_0(Frame *frame);
 static int op_aload_1(Frame *frame);
 static int op_aload_2(Frame *frame);
@@ -57,9 +61,15 @@ static int op_dup(Frame *frame);
 static int op_newarray(Frame *frame);
 static int op_anewarray(Frame *frame);
 static int op_arraylength(Frame *frame);
-static int op_ifnonnull(Frame *frame);
+static int op_ifeq(Frame *frame);
+static int op_ifne(Frame *frame);
+static int op_iflt(Frame *frame);
+static int op_ifle(Frame *frame);
+static int op_ifgt(Frame *frame);
+static int op_ifge(Frame *frame);
 static int op_ireturn(Frame *frame);
 static int op_return(Frame *frame);
+static int op_ifnonnull(Frame *frame);
 
 static int noperands[] = {
 	[NOP]             = 0,
@@ -507,10 +517,10 @@ static INSTRUCT instrtab[] = {
 	[LLOAD_1]         = op_nop,
 	[LLOAD_2]         = op_nop,
 	[LLOAD_3]         = op_nop,
-	[FLOAD_0]         = op_nop,
-	[FLOAD_1]         = op_nop,
-	[FLOAD_2]         = op_nop,
-	[FLOAD_3]         = op_nop,
+	[FLOAD_0]         = op_fload_0,
+	[FLOAD_1]         = op_fload_1,
+	[FLOAD_2]         = op_fload_2,
+	[FLOAD_3]         = op_fload_3,
 	[DLOAD_0]         = op_nop,
 	[DLOAD_1]         = op_nop,
 	[DLOAD_2]         = op_nop,
@@ -626,12 +636,12 @@ static INSTRUCT instrtab[] = {
 	[FCMPG]           = op_nop,
 	[DCMPL]           = op_nop,
 	[DCMPG]           = op_nop,
-	[IFEQ]            = op_nop,
-	[IFNE]            = op_nop,
-	[IFLT]            = op_nop,
-	[IFGE]            = op_nop,
-	[IFGT]            = op_nop,
-	[IFLE]            = op_nop,
+	[IFEQ]            = op_ifeq,
+	[IFNE]            = op_ifne,
+	[IFLT]            = op_iflt,
+	[IFGE]            = op_ifge,
+	[IFGT]            = op_ifgt,
+	[IFLE]            = op_ifle,
 	[IF_ICMPEQ]       = op_nop,
 	[IF_ICMPNE]       = op_nop,
 	[IF_ICMPLT]       = op_nop,
@@ -919,6 +929,39 @@ static int op_iload_2(Frame *frame) {
 
 /* load_3: load int from local variable. */
 static int op_iload_3(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 3);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fload_0: load float from local variable. */
+static int op_fload_0(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 0);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fload_1: load float from local variable. */
+static int op_fload_1(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 1);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+/* fload_2: load float from local variable. */
+static int op_fload_2(Frame *frame) {
+    Value v;
+    v = frameLocalLoad(frame, 2);
+    frameStatckPush(frame, v);
+    return NO_RETURN;
+}
+
+
+/* fload_3: load float from local variable. */
+static int op_fload_3(Frame *frame) {
     Value v;
     v = frameLocalLoad(frame, 3);
     frameStatckPush(frame, v);
@@ -1290,6 +1333,117 @@ static int op_ifnonnull(Frame *frame) {
 
     return NO_RETURN;
 }
+
+
+/* ifeq: branch if int value comparison with zero.*/
+static int op_ifeq(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i == 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
+
+/* ifne: branch if int value comparison with zero.*/
+static int op_ifne(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i != 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
+/* iflt: branch if int value comparison with zero.*/
+static int op_iflt(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i < 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
+/* ifle: branch if int value comparison with zero.*/
+static int op_ifle(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i <= 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
+/* ifgt: branch if int value comparison with zero.*/
+static int op_ifgt(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i > 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
+/* ifge: branch if int value comparison with zero.*/
+static int op_ifge(Frame *frame) {
+    Value v;
+    I2 i;
+    U2 base;
+
+    base = frame->pc - 1;
+    i = frame->code->code[frame->pc] << 8;
+    i |= frame->code->code[frame->pc + 1];
+    v = frameStatckPop(frame);
+    
+    if (v.i >= 0) {
+        frame->pc = base + i;
+    }
+    
+    return NO_RETURN;
+}
+
 
 /* ireturn: return something from method. */
 static int op_ireturn(Frame *frame) {
