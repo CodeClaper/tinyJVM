@@ -1087,7 +1087,7 @@ static int op_getfield(Frame *frame) {
 static int op_putfield(Frame *frame) {
     U2 u;
     CONSTANT_Fieldref_info *fieldref;
-    Value v, nv;
+    Value v, na;
     char *classname, *name, *type;
     Clazz *clazz;
     Field *field;
@@ -1104,12 +1104,12 @@ static int op_putfield(Frame *frame) {
     if (clazz == NULL) error("Load clazz: %s fail.", classname);
     field = clazzFindField(clazz, name, type);
     if (field == NULL) error("Not found field: %s in class: %s", name, classname);
-    if (v.h == NULL || v.h->obj == NULL) error("java/lang/NullPointerException");
-    obj = (JavaObject *)v.h->obj; 
+    na = frameStatckPop(frame);
+    if (na.h == NULL || na.h->obj == NULL) error("java/lang/NullPointerException");
+    obj = (JavaObject *)na.h->obj; 
 
     /* Pop value and Set instance var. */
-    nv = frameStatckPop(frame);
-    clazzSetInstanceVar(obj, field, nv);
+    clazzSetInstanceVar(obj, field, v);
 
     return NO_RETURN;
 }
