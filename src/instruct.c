@@ -1195,6 +1195,7 @@ static int op_invokevirtual(Frame *frame) {
     NativeClassType ntype;
     CONSTANT_Methodref_info *method_ref;
     char *classname, *name, *type;
+    MethodInfo *mi;
 
     u = frame->code->code[frame->pc++] << 8;
     u |= frame->code->code[frame->pc++];
@@ -1202,11 +1203,13 @@ static int op_invokevirtual(Frame *frame) {
     classname = classGetClassName(frame->class, method_ref->class_index);
     name = classGetNameAndTypeForName(frame->class, method_ref->name_type_index);
     type = classGetNameAndTypeForType(frame->class, method_ref->name_type_index);
+    class = loadClass(classname);
+    mi = classGetMethod(class, name, type);
     
-    if ((ntype = nativeClassFind(classname)) != NONE_CLASS) {
+    if (mi->access_flags & ACC_METHOD_NATIVE || (ntype = nativeClassFind(classname)) != NONE_CLASS) {
         if (nativeMethodCall(frame, ntype, name, type) == ERR) 
             error("error invoking native method %s", name);
-    } else if ((class = loadClass(classname)) != NULL) {
+    } else if (class != NULL) {
         if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)
             error("could not find method %s in class %s.", name, classname);
     } else error("could not load class %s", classname);
@@ -1387,8 +1390,8 @@ static int op_ifeq(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i == 0) {
@@ -1406,8 +1409,8 @@ static int op_ifne(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i != 0) {
@@ -1424,8 +1427,8 @@ static int op_iflt(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i < 0) {
@@ -1442,8 +1445,8 @@ static int op_ifle(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i <= 0) {
@@ -1460,8 +1463,8 @@ static int op_ifgt(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i > 0) {
@@ -1478,8 +1481,8 @@ static int op_ifge(Frame *frame) {
     U2 base;
 
     base = frame->pc - 1;
-    i = frame->code->code[frame->pc] << 8;
-    i |= frame->code->code[frame->pc + 1];
+    i = frame->code->code[frame->pc++] << 8;
+    i |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
     
     if (v.i >= 0) {
