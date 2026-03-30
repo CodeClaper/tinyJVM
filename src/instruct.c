@@ -53,6 +53,7 @@ static int op_invokespecial(Frame *frame);
 static int op_invokestatic(Frame *frame);
 static int op_new(Frame *frame);
 static int op_dup(Frame *frame);
+static int op_newarray(Frame *frame);
 static int op_anewarray(Frame *frame);
 static int op_arraylength(Frame *frame);
 static int op_ifnonnull(Frame *frame);
@@ -659,7 +660,7 @@ static INSTRUCT instrtab[] = {
 	[INVOKEINTERFACE] = op_nop,
 	[INVOKEDYNAMIC]   = op_nop,
 	[NEW]             = op_new,
-	[NEWARRAY]        = op_nop,
+	[NEWARRAY]        = op_newarray,
 	[ANEWARRAY]       = op_anewarray,
 	[ARRAYLENGTH]     = op_arraylength,
 	[ATHROW]          = op_nop,
@@ -709,7 +710,7 @@ static Value resolveConstant(ClassFile *class, U2 index) {
             v.d = classGetDouble(class, index);
             break;
         case CONSTANT_String:
-            s = classGetString(class,  index);       
+            s = classGetString(class, index);       
             v.s = sstrdup(s);
             break;
     }
@@ -1199,10 +1200,27 @@ static int op_dup(Frame *frame) {
     return NO_RETURN;
 }
 
+/* newarray: create new array of basic type. */
+static int op_newarray(Frame *frame) {
+    Value v, nv;
+    U1 atype;
+    Clazz *clazz;
+
+    atype = frame->code->code[frame->pc++];
+    v = frameStatckPop(frame);
+    if (v.i < 0) error("NegativeArraySizeException");
+    clazz = clazzFindBuildInByAtype(atype);
+    if (clazz == NULL) error("Bad atype");
+
+    nv.h = heapNewArray(clazz, v.i);
+    frameStatckPush(frame, nv);
+
+    return NO_RETURN;
+}
+
 /* anewarray: new an array of reference. */
 static int op_anewarray(Frame *frame) {
     U2 u;
-    I4 count;
     Value v, nv;
     char *classname;
     Clazz *clazz;
@@ -1210,14 +1228,15 @@ static int op_anewarray(Frame *frame) {
     u = frame->code->code[frame->pc++] << 8;
     u |= frame->code->code[frame->pc++];
     v = frameStatckPop(frame);
-    count = v.i;
-    if (count < 0) return ERR; // NegativeArraySizeException.
+    if (v.i < 0) error("NegativeArraySizeException"); // NegativeArraySizeException.
     
     classname = classGetClassName(frame->class, u);
     clazz = clazzLoad(classname);
-    nv.h = heapNewArray(clazz, count);
+    if (clazz == NULL) error("Not fond class: %s", classname);
 
+    nv.h = heapNewArray(clazz, v.i);
     frameStatckPush(frame, nv);
+
     return NO_RETURN;
 }
 

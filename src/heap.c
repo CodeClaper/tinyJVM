@@ -23,6 +23,7 @@ JavaObject *newObj(Clazz *clazz) {
 
 /* New JavaArrayObject instance. */
 JavaArrayObject *newArray(Clazz *clazz, U2 length) {
+    U2 i;
     JavaArrayObject *array_obj;
 
     array_obj = salloc(sizeof(JavaArrayObject));
@@ -30,7 +31,8 @@ JavaArrayObject *newArray(Clazz *clazz, U2 length) {
     array_obj->header.clazz = clazz;
     array_obj->length = length;
     array_obj->data = salloc(sizeof(JavaObject *) * length);
-
+    for (i = 0; i < length; i++) array_obj->data[i] = newObj(clazz);
+    
     return array_obj;
 }
 
