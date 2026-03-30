@@ -63,6 +63,9 @@ static int op_dup(Frame *frame);
 static int op_newarray(Frame *frame);
 static int op_anewarray(Frame *frame);
 static int op_arraylength(Frame *frame);
+static int op_imul(Frame *frame);
+static int op_lmul(Frame *frame);
+static int op_fmul(Frame *frame);
 static int op_i2l(Frame *frame);
 static int op_i2f(Frame *frame);
 static int op_i2d(Frame *frame);
@@ -385,7 +388,7 @@ static char *instrnames[CODE_LAST] = {
 	[LADD]            = "ladd",
 	[FADD]            = "fadd",
 	[DADD]            = "dadd",
-[ISUB]            = "isub",
+    [ISUB]            = "isub",
 	[LSUB]            = "lsub",
 	[FSUB]            = "fsub",
 	[DSUB]            = "dsub",
@@ -594,9 +597,9 @@ static INSTRUCT instrtab[] = {
 	[LSUB]            = op_nop,
 	[FSUB]            = op_nop,
 	[DSUB]            = op_nop,
-	[IMUL]            = op_nop,
-	[LMUL]            = op_nop,
-	[FMUL]            = op_nop,
+	[IMUL]            = op_imul,
+	[LMUL]            = op_lmul,
+	[FMUL]            = op_fmul,
 	[DMUL]            = op_nop,
 	[IDIV]            = op_nop,
 	[LDIV]            = op_nop,
@@ -1211,8 +1214,8 @@ static int op_invokevirtual(Frame *frame) {
         if (nativeMethodCall(frame, classname, name, type) == ERR) 
             error("error invoking native method %s", name);
     } else if (class != NULL) {
-        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR)
-            error("could not find method %s in class %s.", name, classname);
+        if (methodCall(class, frame, name, type,  ACC_METHOD_PUBLIC) == ERR)
+            error("could not find method %s in class %s when <invokevirtual>.", name, classname);
     } else error("could not load class %s", classname);
 
     return NO_RETURN;
@@ -1239,8 +1242,8 @@ static int op_invokespecial(Frame *frame) {
         if (initMethodCall(class, frame, name, type, ACC_METHOD_PUBLIC) == ERR) 
             error("could not find method %s in class %s.", name, classname);
     } else {
-        if (methodCall(class, frame, name, type, ACC_METHOD_PUBLIC | ACC_METHOD_PRIVATE | ACC_METHOD_PROTECTED) == ERR) 
-            error("could not find method %s in class %s.", name, classname);
+        if (methodCall(class, frame, name, type,  ACC_METHOD_PUBLIC | ACC_METHOD_PRIVATE | ACC_METHOD_PROTECTED) == ERR) 
+            error("could not find method %s in class %s when <invokespecial>.", name, classname);
     }
     
     return NO_RETURN;
@@ -1349,6 +1352,42 @@ static int op_arraylength(Frame *frame) {
     jar = v.h->obj;
     v.i = jar->length;
     frameStatckPush(frame, v);
+
+    return NO_RETURN;
+}
+
+/* imul: multiply two int. */
+static int op_imul(Frame *frame) {
+    Value v1, v2, v;
+
+    v2= frameStatckPop(frame);
+    v1= frameStatckPop(frame);
+    v.i = v1.i * v2.i;
+    frameStatckPush(frame,  v);
+
+    return NO_RETURN;
+}
+
+/* lmul: multiply two long. */
+static int op_lmul(Frame *frame) {
+    Value v1, v2, v;
+
+    v2= frameStatckPop(frame);
+    v1= frameStatckPop(frame);
+    v.f = v1.f * v2.f;
+    frameStatckPush(frame,  v);
+
+    return NO_RETURN;
+}
+
+/* fmul: multiply two floats. */
+static int op_fmul(Frame *frame) {
+    Value v1, v2, v;
+
+    v2= frameStatckPop(frame);
+    v1= frameStatckPop(frame);
+    v.f = v1.f * v2.f;
+    frameStatckPush(frame,  v);
 
     return NO_RETURN;
 }
