@@ -7,5 +7,6 @@ typedef enum NativeClassType {
     IO_PRINTSTREAM
 } NativeClassType;
 
+void initPrimitiveMirrors();
 void *nativeJavaObj(NativeClassType ntype, char *objname, char *objtype);
 int nativeMethodCall(Frame *frame, char *classname, char *name, char *type);

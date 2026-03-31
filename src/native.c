@@ -1,10 +1,24 @@
 #include <stdio.h>
 #include <string.h>
 #include "native.h"
+#include "class.h"
 #include "data.h"
 #include "frame.h"
+#include "heap.h"
 #include "util.h"
 
+typedef struct {
+    Heap    bool_class;
+    Heap    char_class;
+    Heap    float_class;
+    Heap    double_class;
+    Heap    byte_class;
+    Heap    short_class;
+    Heap    int_class;
+    Heap    long_class;
+} GlobalMirrors;
+
+GlobalMirrors globalMirrors = {};
 
 static void nativePrintln(Frame *frame, char *type);
 static void nativeRegisterNatives(Frame *frame, char *type) ;
@@ -37,6 +51,20 @@ static struct NativeMethod {
     }
 };
 
+
+/* Init primitive mirrors. */
+void initPrimitiveMirrors() {
+    Clazz *clazz = clazzLoad("java/lang/Class");
+    globalMirrors.bool_class.obj = newObj(clazz);
+    globalMirrors.char_class.obj = newObj(clazz);
+    globalMirrors.float_class.obj = newObj(clazz);
+    globalMirrors.double_class.obj = newObj(clazz);
+    globalMirrors.byte_class.obj = newObj(clazz);
+    globalMirrors.short_class.obj = newObj(clazz);
+    globalMirrors.int_class.obj = newObj(clazz);
+    globalMirrors.long_class.obj = newObj(clazz);
+}
+
 /* Native method <println>. */
 static void nativePrintln(Frame *frame, char *type) {
     Value v, vfp;
@@ -64,7 +92,23 @@ static void nativeRegisterNatives(Frame *frame, char *type) {
 
 
 static void nativeGetPrimitiveClass(Frame *frame, char *type) {
-
+    Value v, nv;
+    char *name;
+    
+    UNUSED(type);
+    v = frameStatckPop(frame);
+    name = v.s;
+    
+    if (strcmp(name, "boolean") == 0) nv.h = &globalMirrors.bool_class;
+    else if (strcmp(name, "char") == 0) nv.h = &globalMirrors.char_class;
+    else if (strcmp(name, "float") == 0) nv.h = &globalMirrors.float_class;
+    else if (strcmp(name, "double") == 0) nv.h = &globalMirrors.double_class;
+    else if (strcmp(name, "byte") == 0) nv.h = &globalMirrors.byte_class;
+    else if (strcmp(name, "short") == 0) nv.h = &globalMirrors.short_class;
+    else if (strcmp(name, "int") == 0) nv.h = &globalMirrors.int_class;
+    else if (strcmp(name, "long") == 0) nv.h = &globalMirrors.long_class;
+    
+    frameStatckPush(frame, nv);
 }
 
 /* Find native class. */
@@ -112,3 +156,4 @@ int nativeMethodCall(Frame *frame, char *classname, char *name, char *type) {
     error("Not found native method: %s in class: %s", name, classname);
     return ERR;
 }
+

@@ -31,11 +31,16 @@ oom:
     exit(EXIT_FAILURE);
 }
 
-
-static void initJvmEnv() {
+static void bootstrap() {
     /* Bootstrap the Object clazz. */
     clazzLoadObject();
+    clazzLoad("java/lang/Class");
+    clazzLoad("java/lang/String");
+    initPrimitiveMirrors();
+}
 
+
+static void initJvmEnv() {
     ClassFile *class;
     Frame *frame;
 
@@ -67,7 +72,6 @@ static void init(int argc, char *argv[]) {
         addClassPath(".");
 
     javaStates.mode = runMode(argv[0]);
-    initJvmEnv();
     return;
 oom:
     seterror("Out of memory");
@@ -142,6 +146,8 @@ int main(int argc, char *argv[]) {
     if (argc < 2) usage();
 	atexit(afterexist);
     init(argc, argv);
+    bootstrap();
+    initJvmEnv();
     java(argc, argv);
     return EXIT_SUCCESS;
 }
