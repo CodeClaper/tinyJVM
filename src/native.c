@@ -18,7 +18,7 @@ typedef struct {
     Heap    long_class;
 } GlobalMirrors;
 
-GlobalMirrors globalMirrors = {};
+GlobalMirrors globalMirrors;
 
 static void nativePrintln(Frame *frame, char *type);
 static void nativeRegisterNatives(Frame *frame, char *type) ;
