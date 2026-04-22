@@ -51,7 +51,6 @@ static struct NativeMethod {
     }
 };
 
-
 /* Init primitive mirrors. */
 void initPrimitiveMirrors() {
     Clazz *clazz = clazzLoad("java/lang/Class");
@@ -88,11 +87,13 @@ static void nativePrintln(Frame *frame, char *type) {
 
 static void nativeRegisterNatives(Frame *frame, char *type) {
     // Nothing todo.
+    UNUSED(frame);
+    UNUSED(type);
 }
 
 
 static void nativeGetPrimitiveClass(Frame *frame, char *type) {
-    Value v, nv;
+    Value v, nv = {.i = 0 };
     char *name;
     
     UNUSED(type);

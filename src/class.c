@@ -892,6 +892,13 @@ char *classGetString(ClassFile *class, U2 index) {
     return classGetUtf8(class, class->constant_pool[index]->info.string_info.string_index);
 }
 
+/* Get Object from Object reference.*/
+void *classGetObj(ClassFile *class, U2 index) {
+    U2 name_index = class->constant_pool[index]->info.class_info.name_index;
+    char *class_name = classGetUtf8(class, name_index);
+    return NULL;
+}
+
 /* Get int from Integer reference. */
 I4 classGetInteger(ClassFile *class, U2 index) {
     return castInt(class->constant_pool[index]->info.integer_info.bytes);

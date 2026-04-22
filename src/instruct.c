@@ -714,10 +714,12 @@ INSTRUCT getInstruct(U1 instruction) {
 
 /* Resolve constant value. */
 static Value resolveConstant(ClassFile *class, U2 index) {
-    Value v;
+    Value v = {.i = 0};
     char *s;
-
-    switch (class->constant_pool[index]->tag) {
+    U1 tag;
+    
+    tag = class->constant_pool[index]->tag;
+    switch (tag) {
         case CONSTANT_Integer:
             v.i = classGetInteger(class, index);
             break;
@@ -734,6 +736,10 @@ static Value resolveConstant(ClassFile *class, U2 index) {
             s = classGetString(class, index);       
             v.s = sstrdup(s);
             break;
+        case CONSTANT_Class:
+            v.h = classGetObj(class, index);
+            break;
+        default: error("Not support tag: %d", tag);
     }
 
     return v;

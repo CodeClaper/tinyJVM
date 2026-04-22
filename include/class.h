@@ -492,6 +492,7 @@ ClassFile *classLoadObject();
 ClassFile *loadClass(char *class_name);
 char *classGetUtf8(ClassFile *class, U2 index);
 char *classGetString(ClassFile *class, U2 index);
+void *classGetObj(ClassFile *class, U2 index);
 I4 classGetInteger(ClassFile *class, U2 index);
 I8 classGetLong(ClassFile *class, U2 index);
 float classGetFloat(ClassFile *class, U2 index);
