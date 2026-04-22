@@ -12,8 +12,15 @@ typedef enum RunMode {
     JAVAP
 } RunMode ;
 
+typedef enum JavaState {
+    INITIAL,
+    RUNNIG,
+    DESTROYED
+} JavaState;
+
 typedef struct JavaStates {
     RunMode         mode;
+    JavaState       state;
     U2              num_class_path;
     char            **class_path;
     char            error[MAX_ERR_SIZE];

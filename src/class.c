@@ -11,6 +11,7 @@
 #include "instruct.h"
 #include "method.h"
 #include "clazz.h"
+#include "heap.h"
 
 static FrameTag getFramTag(U1 val);
 static AttributeTag getAttrTag(char *attr_name);
@@ -896,7 +897,8 @@ char *classGetString(ClassFile *class, U2 index) {
 void *classGetObj(ClassFile *class, U2 index) {
     U2 name_index = class->constant_pool[index]->info.class_info.name_index;
     char *class_name = classGetUtf8(class, name_index);
-    return NULL;
+    Clazz *clazz = clazzLoad(class_name);
+    return heapNew(clazz);
 }
 
 /* Get int from Integer reference. */

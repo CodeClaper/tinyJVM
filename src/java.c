@@ -12,13 +12,15 @@
 #include "clazz.h"
 #include "heap.h"
 
-struct JavaStates javaStates;
+struct JavaStates javaStates = {.state = INITIAL};
 
+/* Usage. */
 static void usage() {
 	fprintf(stderr, "usage: java [-cp classpath] class\n");
 	exit(EXIT_FAILURE);
 }
 
+/* Add class path. */
 static void addClassPath(char *classpath) {
     javaStates.class_path = srealloc(javaStates.class_path, sizeof(char *) * (javaStates.num_class_path + 1));
     if (javaStates.class_path == NULL) goto oom;
@@ -29,6 +31,11 @@ static void addClassPath(char *classpath) {
 oom:
     seterror("Out of memory");
     exit(EXIT_FAILURE);
+}
+
+/* Set java state. */
+static inline void setJavaState(JavaState state) {
+    javaStates.state = state;
 }
 
 static void bootstrap() {
@@ -148,6 +155,7 @@ int main(int argc, char *argv[]) {
     init(argc, argv);
     bootstrap();
     initJvmEnv();
+    setJavaState(RUNNIG);
     java(argc, argv);
     return EXIT_SUCCESS;
 }

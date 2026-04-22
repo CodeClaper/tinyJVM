@@ -38,6 +38,7 @@ typedef struct Clazz {
     struct Method       **static_methods;
     U2                  instance_method_count;
     struct Method       **instance_methods;
+    struct Heap         *java_mirror;
 } Clazz;
 
 typedef struct JavaObjectHeader {

@@ -10,14 +10,14 @@
 
 static Clazz *clazzStack = NULL;
 static Clazz builtin[] = {
-    {"[B", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL}, // byte
-    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL}, // char
-    {"[D", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL}, // double
-    {"[F", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL}, // float
-    {"[I", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL}, // int
-    {"[J", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL}, // long
-    {"[S", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL}, // short
-    {"[Z", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL}, // boolean
+    {"[B", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL, NULL}, // byte
+    {"[C", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL, NULL}, // char
+    {"[D", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL, NULL}, // double
+    {"[F", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL, NULL}, // float
+    {"[I", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 4, 0, NULL, 0, NULL, NULL}, // int
+    {"[J", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 8, 0, NULL, 0, NULL, NULL}, // long
+    {"[S", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 2, 0, NULL, 0, NULL, NULL}, // short
+    {"[Z", 1, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 0, NULL, 0, NULL, NULL}, // boolean
 };
 
 
@@ -191,6 +191,13 @@ static void *getInstanceMethods(ClassFile *class, U2 count) {
     return methods;
 }
 
+/* Get java mirror. */
+static Heap *getJavaMirror() {
+    Clazz *clazz = clazzLoad("/java/lang/Class");
+    return heapNew(clazz);
+}
+
+
 /* Calc static var size. */
 static U4 clazzCalcStaticVarSize(Clazz *clazz) {
     U2 i;
@@ -338,6 +345,7 @@ static Clazz *clazzLoadFile(char *classname) {
     c->static_methods = getStaticMethods(class, c->static_method_count);
     c->instance_method_count = getInstanceMethodCount(class);
     c->instance_methods = getInstanceMethods(class, c->instance_method_count);
+    c->java_mirror = javaStates.state == RUNNIG ? NULL : getJavaMirror();
     
     clazzPushStack(c);
     return c;
